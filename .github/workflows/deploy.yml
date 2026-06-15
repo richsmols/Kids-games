@@ -1,0 +1,61 @@
+name: Deploy to GitHub Pages
+
+# Every push to main publishes the site. Add a new game, push, it's live.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Write config.js from secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          EMAIL_DOMAIN: ${{ secrets.EMAIL_DOMAIN }}
+          INVITE_CODE: ${{ secrets.INVITE_CODE }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "::error::Missing SUPABASE_URL or SUPABASE_KEY. Add them under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          node -e '
+            const fs = require("fs");
+            const cfg = {
+              SUPABASE_URL: process.env.SUPABASE_URL,
+              SUPABASE_KEY: process.env.SUPABASE_KEY,
+              EMAIL_DOMAIN: process.env.EMAIL_DOMAIN || "familyarcade.local",
+              INVITE_CODE: process.env.INVITE_CODE || ""
+            };
+            fs.writeFileSync("config.js", "window.ARCADE_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n");
+          '
+          echo "config.js written (key length ${#SUPABASE_KEY})"
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'        # publishes the whole repo root
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
