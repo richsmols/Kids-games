@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Arcade — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0a0420;--panel:#150a33;--line:#3a2470;--cyan:#22e1ff;--magenta:#ff2bb1;
+    --yellow:#ffe14d;--green:#3bf07a;--muted:#9d8fd6;--txt:#f3ecff;
+    --pix:'Press Start 2P',monospace;--body:'Outfit',system-ui,sans-serif;}
+  *{box-sizing:border-box;}
+  body{margin:0;min-height:100vh;font-family:var(--body);color:var(--txt);
+    background:radial-gradient(1100px 600px at 50% -10%,#2a1066,transparent 60%),linear-gradient(var(--ink),#05020f 70%);
+    padding:0 0 60px;}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;
+    border-bottom:2px solid var(--line);background:rgba(10,4,32,.8);position:sticky;top:0;}
+  .brand{font-family:var(--pix);font-size:13px;color:var(--magenta);text-shadow:2px 2px 0 #000;}
+  .brand b{color:var(--yellow);}
+  main{max-width:860px;margin:0 auto;padding:26px 18px;}
+  .panel{background:var(--panel);border:3px solid #000;border-radius:16px;padding:22px;
+    box-shadow:0 0 0 3px var(--line),0 16px 40px rgba(0,0,0,.5);margin-bottom:22px;}
+  h2{font-family:var(--pix);font-size:12px;color:var(--cyan);letter-spacing:1px;margin:0 0 16px;}
+  label{display:block;font-family:var(--pix);font-size:9px;color:var(--muted);margin:12px 0 7px;}
+  input{width:100%;font-family:var(--body);font-size:17px;font-weight:600;color:var(--txt);
+    background:#0a0420;border:3px solid #000;border-radius:10px;padding:13px 14px;box-shadow:inset 0 0 0 2px var(--line);}
+  input:focus{outline:3px solid var(--cyan);outline-offset:2px;}
+  .btn{font-family:var(--pix);font-size:11px;color:var(--ink);background:var(--yellow);border:3px solid #000;
+    border-radius:10px;padding:11px 14px;cursor:pointer;box-shadow:0 4px 0 #000;}
+  .btn:active{transform:translateY(2px);box-shadow:0 2px 0 #000;}
+  .btn.cyan{background:var(--cyan);} .btn.green{background:var(--green);} .btn.red{background:var(--magenta);color:#fff;}
+  .btn.sm{font-size:9px;padding:9px 11px;}
+  .err{color:var(--magenta);font-family:var(--pix);font-size:9px;margin-top:10px;min-height:12px;}
+  table{width:100%;border-collapse:collapse;}
+  th{font-family:var(--pix);font-size:8px;color:var(--muted);text-align:left;padding:0 10px 10px;}
+  td{font-size:15px;padding:11px 10px;border-top:2px solid var(--line);vertical-align:middle;}
+  .u{font-weight:700;}
+  .pill{font-family:var(--pix);font-size:8px;padding:4px 7px;border-radius:6px;border:2px solid var(--line);}
+  .pill.pending{color:var(--yellow);} .pill.approved{color:var(--green);} .pill.rejected{color:var(--magenta);}
+  .empty{color:var(--muted);padding:14px 4px;}
+  .hide{display:none !important;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .auth-wrap{max-width:420px;margin:10vh auto;}
+  .title{font-family:var(--pix);font-size:18px;color:var(--cyan);text-align:center;text-shadow:2px 2px 0 var(--magenta);margin:0 0 18px;}
+  .muted{color:var(--muted);font-size:14px;}
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
+    background:#000;border:3px solid var(--green);color:var(--green);font-family:var(--pix);font-size:10px;
+    padding:13px 16px;border-radius:12px;opacity:0;transition:.25s;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">ADMIN <b>CONSOLE</b></div>
+  <div><a href="index.html" style="color:var(--cyan);font-family:var(--pix);font-size:9px;">◄ ARCADE</a>
+       &nbsp;&nbsp;<button class="btn sm" id="logoutBtn">LOG OUT</button></div>
+</header>
+<main>
+  <div id="boot" class="muted" style="text-align:center;margin-top:12vh;font-family:var(--pix);font-size:11px;">CHECKING ACCESS…</div>
+
+  <!-- login -->
+  <section id="login" class="auth-wrap hide">
+    <h1 class="title">ADMIN LOGIN</h1>
+    <div class="panel">
+      <label>Username</label>
+      <input id="u" autocapitalize="none" spellcheck="false">
+      <label>Password</label>
+      <input id="p" type="password">
+      <div class="err" id="err"></div>
+      <div style="height:10px"></div>
+      <button class="btn cyan" id="loginBtn" style="width:100%">LOG IN</button>
+    </div>
+  </section>
+
+  <!-- denied -->
+  <section id="denied" class="auth-wrap hide">
+    <h1 class="title" style="color:var(--magenta)">NOT AN ADMIN</h1>
+    <p class="muted" style="text-align:center">This account isn't an admin. Make yourself admin by running the SQL in schema.sql, then reload.</p>
+    <div style="height:14px"></div>
+    <button class="btn red" id="deniedLogout" style="width:100%">LOG OUT</button>
+  </section>
+
+  <!-- console -->
+  <section id="console" class="hide">
+    <div class="panel">
+      <h2>⏳ PENDING REQUESTS</h2>
+      <div id="pending"></div>
+    </div>
+    <div class="panel">
+      <h2>✅ PLAYERS</h2>
+      <div id="players"></div>
+    </div>
+    <div class="panel">
+      <h2>🏆 RECENT SCORES</h2>
+      <div id="scores"></div>
+    </div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script src="config.js"></script>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+const CFG = window.ARCADE_CONFIG || {};
+const supabase = createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+const sections=['boot','login','denied','console'];
+function show(s){ sections.forEach(x=>$(x).classList.toggle('hide',x!==s)); }
+let toastT; function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2400);}
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function emailFor(u){return (u||'').trim().toLowerCase().replace(/[^a-z0-9_]/g,'')+'@'+CFG.EMAIL_DOMAIN;}
+
+async function route(){
+  const { data:{ session } } = await supabase.auth.getSession();
+  if(!session){ show('login'); return; }
+  const { data:prof } = await supabase.from('profiles').select('*').eq('id',session.user.id).single();
+  if(!prof || !prof.is_admin){ show('denied'); return; }
+  show('console'); loadAll();
+}
+$('loginBtn').onclick=async()=>{
+  $('err').textContent='';
+  const { error } = await supabase.auth.signInWithPassword({ email:emailFor($('u').value), password:$('p').value });
+  if(error){ $('err').textContent='Wrong username or password.'; return; }
+  route();
+};
+$('logoutBtn').onclick=async()=>{ await supabase.auth.signOut(); show('login'); };
+$('deniedLogout').onclick=$('logoutBtn').onclick;
+$('p').addEventListener('keydown',e=>{ if(e.key==='Enter') $('loginBtn').click(); });
+
+async function loadAll(){ await Promise.all([loadPending(), loadPlayers(), loadScores()]); }
+
+async function setStatus(id, status){
+  const { error } = await supabase.from('profiles').update({ status }).eq('id', id);
+  if(error){ toast('Update failed'); return; }
+  toast(status==='approved'?'Approved':'Updated'); loadAll();
+}
+
+async function loadPending(){
+  const { data } = await supabase.from('profiles').select('*').eq('status','pending').order('created_at');
+  const box=$('pending');
+  if(!data || !data.length){ box.innerHTML='<div class="empty">No requests waiting.</div>'; return; }
+  let h='<table><thead><tr><th>Username</th><th>Requested</th><th>Actions</th></tr></thead><tbody>';
+  data.forEach(r=>{ h+='<tr><td class="u">'+esc(r.display_name||r.username)+'</td>'+
+    '<td class="muted">'+new Date(r.created_at).toLocaleString()+'</td>'+
+    '<td class="actions"><button class="btn green sm" data-app="'+r.id+'">APPROVE</button>'+
+    '<button class="btn red sm" data-rej="'+r.id+'">REJECT</button></td></tr>'; });
+  h+='</tbody></table>'; box.innerHTML=h;
+  box.querySelectorAll('[data-app]').forEach(b=>b.onclick=()=>setStatus(b.dataset.app,'approved'));
+  box.querySelectorAll('[data-rej]').forEach(b=>b.onclick=()=>setStatus(b.dataset.rej,'rejected'));
+}
+
+async function loadPlayers(){
+  const { data } = await supabase.from('profiles').select('*').neq('status','pending').order('username');
+  const box=$('players');
+  if(!data || !data.length){ box.innerHTML='<div class="empty">No players yet.</div>'; return; }
+  let h='<table><thead><tr><th>Username</th><th>Status</th><th>Role</th><th>Actions</th></tr></thead><tbody>';
+  data.forEach(r=>{ h+='<tr><td class="u">'+esc(r.display_name||r.username)+'</td>'+
+    '<td><span class="pill '+r.status+'">'+r.status.toUpperCase()+'</span></td>'+
+    '<td class="muted">'+(r.is_admin?'admin':'player')+'</td><td class="actions">'+
+    (r.status==='approved'
+      ? '<button class="btn red sm" data-rej="'+r.id+'">SUSPEND</button>'
+      : '<button class="btn green sm" data-app="'+r.id+'">RE-APPROVE</button>')+
+    '</td></tr>'; });
+  h+='</tbody></table>'; box.innerHTML=h;
+  box.querySelectorAll('[data-app]').forEach(b=>b.onclick=()=>setStatus(b.dataset.app,'approved'));
+  box.querySelectorAll('[data-rej]').forEach(b=>b.onclick=()=>setStatus(b.dataset.rej,'rejected'));
+}
+
+async function loadScores(){
+  const { data } = await supabase.from('scores').select('game,score,created_at,profiles(display_name,username)')
+    .order('created_at',{ascending:false}).limit(40);
+  const box=$('scores');
+  if(!data || !data.length){ box.innerHTML='<div class="empty">No scores recorded yet.</div>'; return; }
+  let h='<table><thead><tr><th>Player</th><th>Game</th><th>When</th><th>Score</th></tr></thead><tbody>';
+  data.forEach(r=>{ const n=r.profiles?(r.profiles.display_name||r.profiles.username):'?';
+    h+='<tr><td class="u">'+esc(n)+'</td><td class="muted">'+esc(r.game)+'</td>'+
+    '<td class="muted">'+new Date(r.created_at).toLocaleString()+'</td>'+
+    '<td style="color:var(--green)">'+Number(r.score).toLocaleString()+'</td></tr>'; });
+  h+='</tbody></table>'; box.innerHTML=h;
+}
+
+if(!CFG.SUPABASE_URL || CFG.SUPABASE_URL.includes('YOUR-PROJECT')){
+  $('boot').innerHTML='SET UP NEEDED: edit config.js first.';
+} else { route(); }
+</script>
+</body>
+</html>

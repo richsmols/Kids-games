@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0420; --panel:#150a33; --panel2:#241255; --line:#3a2470;
+    --cyan:#22e1ff; --magenta:#ff2bb1; --yellow:#ffe14d; --green:#3bf07a;
+    --muted:#9d8fd6; --txt:#f3ecff;
+    --pix:'Press Start 2P','Courier New',monospace;
+    --body:'Outfit',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;}
+  body{
+    background:
+      radial-gradient(1200px 700px at 50% -10%, #2a1066 0%, transparent 60%),
+      linear-gradient(var(--ink), #05020f 70%);
+    color:var(--txt); font-family:var(--body);
+    min-height:100vh; padding:0 0 60px;
+  }
+  .scan{position:fixed;inset:0;pointer-events:none;z-index:60;mix-blend-mode:overlay;opacity:.5;
+    background:repeating-linear-gradient(transparent 0 2px, rgba(0,0,0,.4) 2px 4px);}
+  @media (prefers-reduced-motion:reduce){ .scan{display:none;} }
+
+  /* top bar */
+  header{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
+    gap:12px;padding:14px 18px;background:rgba(10,4,32,.82);backdrop-filter:blur(6px);
+    border-bottom:2px solid var(--line);}
+  .brand{font-family:var(--pix);font-size:14px;color:var(--cyan);text-shadow:2px 2px 0 var(--magenta);letter-spacing:1px;}
+  .brand b{color:var(--yellow);}
+  nav{display:flex;align-items:center;gap:8px;}
+  .navbtn{font-family:var(--pix);font-size:9px;color:var(--muted);background:none;border:2px solid transparent;
+    padding:8px 10px;border-radius:8px;cursor:pointer;}
+  .navbtn:hover{color:var(--txt);}
+  .navbtn.on{color:var(--ink);background:var(--cyan);}
+  .whoami{font-family:var(--pix);font-size:9px;color:var(--green);}
+  .hide{display:none !important;}
+
+  main{max-width:980px;margin:0 auto;padding:26px 18px;}
+
+  /* generic panel + buttons */
+  .panel{background:var(--panel);border:3px solid #000;border-radius:16px;padding:22px;
+    box-shadow:0 0 0 3px var(--line), 0 18px 50px rgba(0,0,0,.6);}
+  .btn{font-family:var(--pix);font-size:12px;color:var(--ink);background:var(--yellow);
+    border:3px solid #000;border-radius:12px;padding:14px 18px;cursor:pointer;box-shadow:0 5px 0 #000;
+    letter-spacing:1px;width:100%;}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #000;}
+  .btn.cyan{background:var(--cyan);} .btn.ghost{background:#221152;color:var(--txt);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  label{display:block;font-family:var(--pix);font-size:9px;color:var(--muted);margin:14px 0 7px;letter-spacing:1px;}
+  input{width:100%;font-family:var(--body);font-size:17px;font-weight:600;color:var(--txt);
+    background:#0a0420;border:3px solid #000;border-radius:10px;padding:13px 14px;box-shadow:inset 0 0 0 2px var(--line);}
+  input:focus{outline:3px solid var(--cyan);outline-offset:2px;}
+  .err{color:var(--magenta);font-family:var(--pix);font-size:9px;line-height:1.7;min-height:14px;margin-top:10px;}
+  a.link,.linkbtn{color:var(--cyan);background:none;border:none;font:inherit;cursor:pointer;text-decoration:underline;}
+
+  /* auth */
+  .auth-wrap{max-width:440px;margin:6vh auto 0;}
+  .title-big{font-family:var(--pix);font-size:24px;line-height:1.5;color:var(--cyan);
+    text-align:center;text-shadow:3px 3px 0 var(--magenta), 6px 6px 0 #000;margin:0 0 6px;}
+  .tagline{text-align:center;color:var(--muted);margin:0 0 22px;font-size:15px;}
+  .tabs{display:flex;gap:8px;margin-bottom:6px;}
+  .tab{flex:1;font-family:var(--pix);font-size:10px;padding:12px;border-radius:10px 10px 0 0;cursor:pointer;
+    border:3px solid #000;border-bottom:none;background:#1b0f47;color:var(--muted);}
+  .tab.on{background:var(--panel);color:var(--yellow);}
+
+  /* status screens */
+  .status-card{max-width:520px;margin:8vh auto 0;text-align:center;}
+  .status-emoji{font-size:46px;margin-bottom:6px;}
+  .status-h{font-family:var(--pix);font-size:18px;color:var(--yellow);margin:6px 0 12px;line-height:1.5;}
+  .status-p{color:var(--muted);font-size:16px;line-height:1.6;margin-bottom:20px;}
+
+  /* dashboard tiles */
+  .section-h{font-family:var(--pix);font-size:13px;color:var(--cyan);letter-spacing:1px;margin:0 0 18px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;}
+  .tile{position:relative;border-radius:16px;border:3px solid #000;box-shadow:0 0 0 3px var(--line), 0 12px 30px rgba(0,0,0,.5);
+    background:linear-gradient(160deg,var(--panel2),var(--panel));overflow:hidden;cursor:pointer;text-align:left;padding:0;}
+  .tile:disabled{cursor:not-allowed;}
+  .tile .art{height:130px;display:flex;align-items:center;justify-content:center;font-size:54px;
+    background:radial-gradient(circle at 50% 35%, rgba(255,255,255,.10), transparent 60%);}
+  .tile .meta{padding:14px 16px 18px;}
+  .tile .gname{font-family:var(--pix);font-size:12px;color:var(--txt);margin:0 0 8px;line-height:1.5;}
+  .tile .gtag{color:var(--muted);font-size:14px;margin:0;}
+  .tile .play{margin-top:12px;font-family:var(--pix);font-size:9px;letter-spacing:1px;}
+  .tile.ready:hover{transform:translateY(-4px);transition:transform .12s;}
+  .tile.ready .play{color:var(--green);}
+  .tile.soon{opacity:.62;}
+  .badge{position:absolute;top:10px;right:10px;font-family:var(--pix);font-size:8px;padding:5px 8px;border-radius:7px;
+    background:#000;color:var(--yellow);border:2px solid var(--line);}
+
+  /* game view */
+  .gamebar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;}
+  .gamebar .gt{font-family:var(--pix);font-size:12px;color:var(--cyan);}
+  .frame-wrap{border:3px solid #000;border-radius:16px;box-shadow:0 0 0 3px var(--line);overflow:hidden;background:#000;}
+  iframe{display:block;width:100%;height:min(72vh,560px);border:none;background:#05020f;}
+
+  /* leaderboard */
+  .lb-game{margin-bottom:26px;}
+  .lb-game h3{font-family:var(--pix);font-size:12px;color:var(--yellow);margin:0 0 12px;letter-spacing:1px;}
+  table{width:100%;border-collapse:collapse;font-family:var(--pix);}
+  th{font-size:8px;color:var(--muted);text-align:left;padding:0 10px 10px;letter-spacing:1px;}
+  td{font-size:12px;padding:12px 10px;border-top:2px solid var(--line);}
+  tr td:last-child,tr th:last-child{text-align:right;}
+  .rank{color:var(--muted);width:48px;}
+  .r1 .rank{color:var(--yellow);} .r2 .rank{color:#cfd8ff;} .r3 .rank{color:#ff9d5c;}
+  .me{background:rgba(34,225,255,.08);}
+  .me td:first-child{box-shadow:inset 3px 0 0 var(--cyan);}
+  .score-cell{color:var(--green);}
+  .empty{color:var(--muted);font-family:var(--body);font-size:15px;padding:18px 4px;}
+
+  /* toast */
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);z-index:80;
+    background:#000;border:3px solid var(--green);color:var(--green);font-family:var(--pix);font-size:11px;
+    padding:14px 18px;border-radius:12px;opacity:0;transition:.25s;pointer-events:none;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .center-load{max-width:520px;margin:14vh auto;text-align:center;font-family:var(--pix);
+    font-size:11px;color:var(--muted);line-height:2;}
+  @media (max-width:520px){ .title-big{font-size:18px;} .brand{font-size:11px;} }
+</style>
+</head>
+<body>
+<div class="scan"></div>
+
+<header class="hide" id="topbar">
+  <div class="brand">FAMILY <b>ARCADE</b></div>
+  <nav>
+    <button class="navbtn" id="navGames" data-view="dashboard">GAMES</button>
+    <button class="navbtn" id="navBoard" data-view="leaderboard">LEAGUE</button>
+    <span class="whoami" id="whoami"></span>
+    <button class="navbtn" id="logoutBtn">LOG OUT</button>
+  </nav>
+</header>
+
+<main>
+  <!-- BOOT -->
+  <div id="view-boot" class="center-load">LOADING THE ARCADE…</div>
+
+  <!-- AUTH -->
+  <section id="view-auth" class="auth-wrap hide">
+    <h1 class="title-big">FAMILY<br>ARCADE</h1>
+    <p class="tagline">Log in to play. New here? Ask for an account and a grown-up will let you in.</p>
+    <div class="tabs">
+      <div class="tab on" id="tabLogin">LOG IN</div>
+      <div class="tab" id="tabRequest">REQUEST ACCOUNT</div>
+    </div>
+    <div class="panel" style="border-radius:0 0 16px 16px;">
+      <!-- login -->
+      <div id="formLogin">
+        <label for="liUser">Username</label>
+        <input id="liUser" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="e.g. leo">
+        <label for="liPass">Password</label>
+        <input id="liPass" type="password" autocomplete="current-password" placeholder="••••••••">
+        <div class="err" id="loginErr"></div>
+        <div style="height:8px"></div>
+        <button class="btn cyan" id="loginBtn">LOG IN</button>
+      </div>
+      <!-- request -->
+      <div id="formRequest" class="hide">
+        <label for="rqUser">Pick a username</label>
+        <input id="rqUser" autocapitalize="none" spellcheck="false" placeholder="letters & numbers, no spaces">
+        <label for="rqPass">Pick a password</label>
+        <input id="rqPass" type="password" autocomplete="new-password" placeholder="at least 6 characters">
+        <label for="rqCode">Family code</label>
+        <input id="rqCode" autocapitalize="none" placeholder="ask a grown-up">
+        <div class="err" id="reqErr"></div>
+        <div style="height:8px"></div>
+        <button class="btn" id="requestBtn">SEND REQUEST</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PENDING -->
+  <section id="view-pending" class="status-card hide">
+    <div class="status-emoji">⏳</div>
+    <div class="status-h">Waiting for approval</div>
+    <p class="status-p">Your request has been sent. A grown-up needs to let you in before you can play. Check back soon!</p>
+    <button class="btn cyan" id="pendingRefresh">CHECK AGAIN</button>
+    <div style="height:12px"></div>
+    <button class="linkbtn" id="pendingLogout">Log out</button>
+  </section>
+
+  <!-- REJECTED -->
+  <section id="view-rejected" class="status-card hide">
+    <div class="status-emoji">🚫</div>
+    <div class="status-h">Account not active</div>
+    <p class="status-p">This account isn't active. Ask a grown-up if you think this is a mistake.</p>
+    <button class="btn ghost" id="rejectedLogout">LOG OUT</button>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section id="view-dashboard" class="hide">
+    <h2 class="section-h">CHOOSE YOUR GAME</h2>
+    <div class="grid" id="tiles"></div>
+  </section>
+
+  <!-- GAME -->
+  <section id="view-game" class="hide">
+    <div class="gamebar">
+      <div class="gt" id="gameTitle">GAME</div>
+      <button class="navbtn" id="backToGames" style="border:2px solid var(--line);">◄ BACK</button>
+    </div>
+    <div class="frame-wrap"><iframe id="gameFrame" title="game" allow="autoplay"></iframe></div>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section id="view-leaderboard" class="hide">
+    <h2 class="section-h">LEAGUE TABLE</h2>
+    <div id="board"></div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script src="config.js"></script>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+const CFG = window.ARCADE_CONFIG || {};
+const supabase = createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY);
+
+// games registry — add a tile here when a new game is ready
+const GAMES = [
+  { id:'maths-arcade-runner', name:'Maths Arcade Runner', tag:'Run, jump, kick & solve sums', emoji:'⚽', src:'games/maths-arcade-runner.html', ready:true },
+  { id:'dino-chomp',          name:'Dino Chomp',          tag:'Coming soon',                  emoji:'🦖', src:'',                              ready:false }
+];
+
+const $ = id => document.getElementById(id);
+const views = ['boot','auth','pending','rejected','dashboard','game','leaderboard'];
+let me = null;        // profile row
+let session = null;
+
+function show(view){
+  views.forEach(v => $('view-'+v).classList.toggle('hide', v !== view));
+  $('topbar').classList.toggle('hide', !(me && me.status==='approved'));
+  $('navGames').classList.toggle('on', view==='dashboard');
+  $('navBoard').classList.toggle('on', view==='leaderboard');
+  if(view!=='game') $('gameFrame').src = 'about:blank';
+}
+let toastT;
+function toast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600);
+}
+function cleanUsername(s){ return (s||'').trim().toLowerCase().replace(/[^a-z0-9_]/g,''); }
+function emailFor(u){ return cleanUsername(u)+'@'+CFG.EMAIL_DOMAIN; }
+
+// ---------- routing ----------
+async function refreshSessionAndRoute(){
+  const { data:{ session:s } } = await supabase.auth.getSession();
+  session = s;
+  if(!session){ me=null; show('auth'); return; }
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+  if(error || !data){ me=null; show('auth'); return; }
+  me = data;
+  $('whoami').textContent = (me.display_name||me.username).toUpperCase();
+  if(me.status==='approved') openDashboard();
+  else if(me.status==='rejected') show('rejected');
+  else show('pending');
+}
+
+// ---------- auth tabs ----------
+$('tabLogin').onclick   = ()=>{ $('tabLogin').classList.add('on'); $('tabRequest').classList.remove('on'); $('formLogin').classList.remove('hide'); $('formRequest').classList.add('hide'); };
+$('tabRequest').onclick = ()=>{ $('tabRequest').classList.add('on'); $('tabLogin').classList.remove('on'); $('formRequest').classList.remove('hide'); $('formLogin').classList.add('hide'); };
+
+// ---------- login ----------
+$('loginBtn').onclick = async ()=>{
+  const u=cleanUsername($('liUser').value), p=$('liPass').value;
+  $('loginErr').textContent='';
+  if(!u || !p){ $('loginErr').textContent='Type your username and password.'; return; }
+  $('loginBtn').disabled=true;
+  const { error } = await supabase.auth.signInWithPassword({ email:emailFor(u), password:p });
+  $('loginBtn').disabled=false;
+  if(error){ $('loginErr').textContent='Wrong username or password.'; return; }
+  await refreshSessionAndRoute();
+};
+
+// ---------- request account ----------
+$('requestBtn').onclick = async ()=>{
+  const u=cleanUsername($('rqUser').value), p=$('rqPass').value, code=($('rqCode').value||'').trim();
+  $('reqErr').textContent='';
+  if(u.length<3){ $('reqErr').textContent='Username needs 3+ letters/numbers.'; return; }
+  if(p.length<6){ $('reqErr').textContent='Password needs 6+ characters.'; return; }
+  if(code!==CFG.INVITE_CODE){ $('reqErr').textContent='That family code is not right.'; return; }
+  $('requestBtn').disabled=true;
+  const { error } = await supabase.auth.signUp({
+    email: emailFor(u), password: p,
+    options:{ data:{ username:u, display_name:$('rqUser').value.trim() } }
+  });
+  $('requestBtn').disabled=false;
+  if(error){
+    $('reqErr').textContent = /registered|exists/i.test(error.message) ? 'That username is taken.' : error.message;
+    return;
+  }
+  await refreshSessionAndRoute(); // signed in but pending → pending screen
+};
+
+// ---------- dashboard ----------
+function openDashboard(){
+  const wrap=$('tiles'); wrap.innerHTML='';
+  GAMES.forEach(g=>{
+    const t=document.createElement('button');
+    t.className='tile '+(g.ready?'ready':'soon');
+    t.disabled=!g.ready;
+    t.innerHTML =
+      (g.ready?'':'<span class="badge">SOON</span>')+
+      '<div class="art">'+g.emoji+'</div>'+
+      '<div class="meta"><p class="gname">'+g.name+'</p><p class="gtag">'+g.tag+'</p>'+
+      '<p class="play">'+(g.ready?'▶ PLAY':'NOT READY YET')+'</p></div>';
+    if(g.ready) t.onclick=()=>openGame(g);
+    wrap.appendChild(t);
+  });
+  show('dashboard');
+}
+
+// ---------- play a game ----------
+let currentGame=null;
+function openGame(g){
+  currentGame=g;
+  $('gameTitle').textContent=g.name.toUpperCase();
+  show('game');
+  $('gameFrame').src=g.src;
+}
+$('backToGames').onclick = ()=>openDashboard();
+
+// receive score from the game iframe (same-origin only)
+window.addEventListener('message', async (e)=>{
+  if(e.origin !== location.origin) return;
+  const d=e.data;
+  if(!d || d.type!=='arcade-score' || !currentGame || !me) return;
+  const sc=Math.max(0, Math.min(100000000, parseInt(d.score,10)||0));
+  const { error } = await supabase.from('scores').insert({ user_id:me.id, game:currentGame.id, score:sc });
+  if(error) toast('Could not save score'); else toast('Score saved: '+sc);
+});
+
+// ---------- leaderboard ----------
+async function openLeaderboard(){
+  show('leaderboard');
+  const board=$('board'); board.innerHTML='<div class="empty">Loading scores…</div>';
+  const { data, error } = await supabase.from('leaderboard').select('*').order('best_score',{ascending:false});
+  if(error){ board.innerHTML='<div class="empty">Could not load the league table.</div>'; return; }
+  board.innerHTML='';
+  GAMES.forEach(g=>{
+    const rows=(data||[]).filter(r=>r.game===g.id);
+    if(!rows.length && !g.ready) return;
+    const sec=document.createElement('div'); sec.className='lb-game';
+    let html='<h3>'+g.emoji+' '+g.name+'</h3>';
+    if(!rows.length){ html+='<div class="empty">No scores yet — be the first!</div>'; }
+    else {
+      html+='<table><thead><tr><th class="rank">#</th><th>Player</th><th>Plays</th><th>Best</th></tr></thead><tbody>';
+      rows.forEach((r,i)=>{
+        const mine = me && (r.username===me.username);
+        html+='<tr class="r'+(i+1)+(mine?' me':'')+'"><td class="rank">'+(i+1)+'</td>'+
+              '<td>'+escapeHtml(r.display_name)+'</td><td>'+r.plays+'</td>'+
+              '<td class="score-cell">'+r.best_score.toLocaleString()+'</td></tr>';
+      });
+      html+='</tbody></table>';
+    }
+    sec.innerHTML=html; board.appendChild(sec);
+  });
+  if(!board.children.length) board.innerHTML='<div class="empty">No scores yet — go play a game!</div>';
+}
+function escapeHtml(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ---------- nav / misc ----------
+$('navGames').onclick=()=>openDashboard();
+$('navBoard').onclick=()=>openLeaderboard();
+$('logoutBtn').onclick = async ()=>{ await supabase.auth.signOut(); me=null; show('auth'); };
+$('pendingLogout').onclick = $('logoutBtn').onclick;
+$('rejectedLogout').onclick = $('logoutBtn').onclick;
+$('pendingRefresh').onclick = ()=>refreshSessionAndRoute();
+
+// allow Enter to submit
+$('liPass').addEventListener('keydown',e=>{ if(e.key==='Enter') $('loginBtn').click(); });
+$('rqCode').addEventListener('keydown',e=>{ if(e.key==='Enter') $('requestBtn').click(); });
+
+// ---------- boot ----------
+if(!CFG.SUPABASE_URL || CFG.SUPABASE_URL.includes('YOUR-PROJECT')){
+  $('view-boot').innerHTML = 'SET UP NEEDED:<br>edit config.js with your Supabase URL and key.';
+} else {
+  refreshSessionAndRoute();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+.DS_Store
+Thumbs.db
+node_modules/
+*.log
+.vscode/
+
+# real config is generated at deploy time / created locally — never commit it
+config.js
+
+# one-time publish helper — not part of the website
+setup.sh
