@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dino Chomp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0420; --panel:#150a33; --line:#3a2470;
+    --cyan:#22e1ff; --magenta:#ff2bb1; --yellow:#ffe14d; --green:#3bf07a;
+    --muted:#9d8fd6; --txt:#f3ecff; --pix:'Press Start 2P','Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:radial-gradient(1100px 600px at 50% -10%, #163a1f 0%, transparent 60%),
+               linear-gradient(var(--ink), #05020f 70%);
+    color:var(--txt); font-family:var(--pix);
+    display:flex; align-items:center; justify-content:center; min-height:100%; padding:14px;
+    overflow-x:hidden;
+  }
+  .stage{position:relative;width:100%;max-width:860px;border:4px solid #000;border-radius:14px;
+    box-shadow:0 0 0 4px #1d5a2e, 0 0 40px rgba(59,240,122,.22), 0 18px 50px rgba(0,0,0,.7);
+    background:#000;overflow:hidden;}
+  canvas{display:block;width:100%;height:auto;background:#06140c;touch-action:none;}
+  .scan{position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;
+    background:repeating-linear-gradient(transparent 0 2px, rgba(0,0,0,.35) 2px 4px);animation:roll 8s linear infinite;}
+  @keyframes roll{from{background-position-y:0}to{background-position-y:200px}}
+  @media (prefers-reduced-motion:reduce){ .scan{animation:none;} }
+  .vignette{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 90px rgba(0,0,0,.6);border-radius:12px;}
+
+  .hud{position:absolute;top:8px;left:10px;right:10px;display:flex;justify-content:space-between;
+    align-items:flex-start;pointer-events:none;font-size:11px;text-shadow:2px 2px 0 #000;}
+  .hud .mid{color:var(--yellow);} .hearts{font-size:14px;color:var(--magenta);letter-spacing:2px;}
+  .heart.lost{color:#3a2a55;}
+  .right{text-align:right;color:var(--green);}
+
+  .controls{position:absolute;bottom:10px;left:10px;right:10px;display:flex;justify-content:space-between;pointer-events:none;}
+  .btn{pointer-events:auto;font-family:var(--pix);font-size:18px;color:#fff;background:linear-gradient(#1d6a39,#0e3a20);
+    border:3px solid #000;border-radius:10px;width:64px;height:56px;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 0 #000;user-select:none;-webkit-user-select:none;cursor:pointer;}
+  .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #000;}
+  @media (hover:hover){ .controls{opacity:.5;} .controls:hover{opacity:1;} }
+
+  .overlay{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:22px;background:radial-gradient(circle at 50% 40%, rgba(20,10,51,.8), rgba(5,2,15,.95));}
+  .overlay.show{display:flex;}
+  .title-big{font-size:30px;line-height:1.5;color:var(--green);text-shadow:3px 3px 0 var(--magenta),6px 6px 0 #000;margin:0 0 6px;}
+  .sub{font-size:10px;line-height:2;color:#cdbfff;max-width:520px;margin:10px 0 16px;}
+  .sub b{color:var(--yellow);}
+  .difflabel{font-size:9px;color:var(--yellow);letter-spacing:2px;margin-bottom:8px;}
+  .diffrow{display:flex;gap:10px;margin-bottom:18px;}
+  .diff{font-family:var(--pix);font-size:11px;color:#cdbfff;background:linear-gradient(#221152,#160a33);
+    border:3px solid #000;border-radius:10px;padding:11px 14px;cursor:pointer;box-shadow:0 4px 0 #000;}
+  .diff:active{transform:translateY(3px);box-shadow:0 1px 0 #000;}
+  .diff.sel{color:#0a0420;background:var(--green);box-shadow:0 4px 0 #000,0 0 16px rgba(59,240,122,.6);}
+  .cta{font-family:var(--pix);font-size:13px;color:#0a0420;background:var(--yellow);border:3px solid #000;border-radius:12px;
+    padding:14px 22px;cursor:pointer;box-shadow:0 5px 0 #000;letter-spacing:1px;}
+  .cta:active{transform:translateY(3px);box-shadow:0 2px 0 #000;}
+  .cta:focus-visible,.diff:focus-visible,.btn:focus-visible{outline:3px solid #fff;outline-offset:2px;}
+  .keys{font-size:9px;color:#9d8fd6;line-height:1.9;}
+  .soundbtn{position:absolute;top:8px;right:10px;font-size:9px;padding:6px 8px;box-shadow:0 3px 0 #000;}
+  @media (max-width:520px){ .title-big{font-size:22px;} .btn{width:56px;height:50px;} }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <canvas id="game" width="800" height="450"></canvas>
+  <div class="scan"></div>
+  <div class="vignette"></div>
+
+  <div class="hud">
+    <div><div id="scoreTag">SCORE 0</div><div class="mid" id="comboTag" style="font-size:9px;margin-top:5px;"></div></div>
+    <div class="right"><div class="hearts" id="hearts"></div></div>
+  </div>
+
+  <div class="controls" id="touch">
+    <div class="btn" data-act="left">◄</div>
+    <div class="btn" data-act="right">►</div>
+  </div>
+
+  <!-- TITLE -->
+  <div class="overlay show" id="ovTitle">
+    <h1 class="title-big">🦖 DINO<br>CHOMP</h1>
+    <div class="sub">
+      Move your dino to <b>chomp the snacks</b> 🍖🥚🍒 as they fall.<br>
+      <b>Dodge the rocks and bombs</b> 🪨💣 — they cost a life!<br>
+      Chomp in a row to build a <b>combo</b> and score big. It speeds up the longer you last.
+    </div>
+    <div class="keys">MOVE: ← → / A D &nbsp;•&nbsp; or drag &nbsp;•&nbsp; or the buttons below</div>
+    <div style="height:14px"></div>
+    <div class="difflabel">CHOOSE DIFFICULTY</div>
+    <div class="diffrow" id="diffRow">
+      <button class="diff sel" data-diff="easy">EASY</button>
+      <button class="diff" data-diff="normal">NORMAL</button>
+      <button class="diff" data-diff="hard">HARD</button>
+    </div>
+    <button class="cta" id="startBtn">START</button>
+  </div>
+
+  <!-- GAME OVER -->
+  <div class="overlay" id="ovOver">
+    <h1 class="title-big" style="color:var(--magenta)">GAME OVER</h1>
+    <div class="sub" id="overSub"></div>
+    <button class="cta" id="againBtn">PLAY AGAIN</button>
+  </div>
+
+  <button class="cta soundbtn" id="soundBtn">♪ ON</button>
+</div>
+
+<script>
+(function(){
+"use strict";
+const cv=document.getElementById('game'), ctx=cv.getContext('2d');
+const W=cv.width, H=cv.height, GROUND=398;
+const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const DIFFS={
+  easy:   { label:'EASY',   vy:2.2, spawn:920, hazard:0.18, ramp:0.016 },
+  normal: { label:'NORMAL', vy:2.8, spawn:760, hazard:0.26, ramp:0.022 },
+  hard:   { label:'HARD',   vy:3.5, spawn:600, hazard:0.34, ramp:0.030 }
+};
+let diff='easy';
+
+const GOOD=['🍖','🥚','🍒','🍓','🥩','🍌'];
+const BAD=['🪨','💣','🌵'];
+
+let state='title';
+let score=0, best=0, lives=3, combo=1, elapsed=0;
+let items=[], particles=[];
+let spawnTimer=0, shake=0, chomp=0, hurt=0;
+const dino={ x:W/2, w:54, vx:0, target:null };
+const keys={left:false,right:false};
+
+const $=id=>document.getElementById(id);
+const heartsEl=$('hearts'), scoreEl=$('scoreTag'), comboEl=$('comboTag');
+
+function showOverlay(n){ $('ovTitle').classList.toggle('show',n==='title'); $('ovOver').classList.toggle('show',n==='over'); }
+
+/* ---------- audio ---------- */
+let actx=null, musicOn=true, master=null, musicTimer=null, mstep=0;
+function initAudio(){ if(actx) return; try{ actx=new (window.AudioContext||window.webkitAudioContext)();
+  master=actx.createGain(); master.gain.value=0.16; master.connect(actx.destination);}catch(e){actx=null;} }
+function blip(f,d,t,v){ if(!actx||!musicOn) return; const o=actx.createOscillator(),g=actx.createGain();
+  o.type=t||'square'; o.frequency.value=f; g.gain.setValueAtTime(v||0.2,actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+d); o.connect(g); g.connect(master); o.start(); o.stop(actx.currentTime+d); }
+function sfxChomp(){ blip(420,0.06,'square',0.18); setTimeout(()=>blip(640,0.06,'square',0.16),45); }
+function sfxHit(){ blip(150,0.25,'sawtooth',0.24); }
+function sfxOver(){ [400,330,260,180].forEach((f,i)=>setTimeout(()=>blip(f,0.22,'triangle',0.2),i*130)); }
+const BASS=[131,131,165,131,147,147,196,147];
+function startMusic(){ if(!actx) return; stopMusic(); mstep=0; const tempo=300-({easy:0,normal:40,hard:70})[diff];
+  musicTimer=setInterval(()=>{ if(!musicOn)return; const n=BASS[mstep%BASS.length]; blip(n,0.14,'triangle',0.08);
+    if(mstep%4===0) blip(70,0.1,'sine',0.16); mstep++; },tempo); }
+function stopMusic(){ if(musicTimer){clearInterval(musicTimer); musicTimer=null;} }
+$('soundBtn').onclick=()=>{ musicOn=!musicOn; $('soundBtn').textContent=musicOn?'♪ ON':'♪ OFF';
+  if(musicOn&&state==='playing') startMusic(); else stopMusic(); };
+
+/* ---------- lifecycle ---------- */
+function start(){
+  initAudio(); if(actx&&actx.state==='suspended') actx.resume();
+  score=0; lives=3; combo=1; elapsed=0; items=[]; particles=[]; spawnTimer=0; shake=0; chomp=0; hurt=0;
+  dino.x=W/2; dino.target=null; keys.left=keys.right=false;
+  state='playing'; showOverlay(null); updateHUD(); if(musicOn) startMusic();
+}
+function gameOver(){
+  state='over'; stopMusic(); sfxOver(); best=Math.max(best,score);
+  try{ if(window.parent && window.parent!==window)
+    window.parent.postMessage({type:'arcade-score', game:'dino-chomp', score:Math.round(score)}, '*'); }catch(e){}
+  $('overSub').innerHTML='Difficulty: <b>'+DIFFS[diff].label+'</b><br>Score: <b>'+score+'</b><br>Best this session: <b>'+best+'</b>';
+  showOverlay('over');
+}
+function updateHUD(){ scoreEl.textContent='SCORE '+score;
+  let h=''; for(let i=0;i<3;i++) h+='<span class="heart'+(i<lives?'':' lost')+'">♥</span>'; heartsEl.innerHTML=h;
+  comboEl.textContent = combo>1 ? ('COMBO x'+combo) : ''; }
+
+/* ---------- input ---------- */
+function press(a,d){ if(a==='left')keys.left=d; else if(a==='right')keys.right=d; }
+window.addEventListener('keydown',e=>{
+  if(['ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  if(e.repeat) return;
+  if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') press('left',true);
+  else if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') press('right',true);
+  else if((e.key===' '||e.key==='Enter')){ if(state==='title') start(); else if(state==='over') start(); }
+});
+window.addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') press('left',false);
+  else if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') press('right',false);
+});
+document.querySelectorAll('.btn[data-act]').forEach(b=>{ const a=b.dataset.act;
+  const dn=e=>{e.preventDefault(); initAudio(); press(a,true);}, up=e=>{e.preventDefault(); press(a,false);};
+  b.addEventListener('touchstart',dn,{passive:false}); b.addEventListener('touchend',up,{passive:false});
+  b.addEventListener('touchcancel',up,{passive:false}); b.addEventListener('mousedown',dn);
+  b.addEventListener('mouseup',up); b.addEventListener('mouseleave',up); });
+// drag / point to move
+function canvasX(clientX){ const r=cv.getBoundingClientRect(); return (clientX-r.left)*(W/r.width); }
+function pointDown(x){ if(state==='playing'){ dino.target=Math.max(0,Math.min(W,x)); } }
+cv.addEventListener('pointerdown',e=>{ e.preventDefault(); initAudio(); pointDown(canvasX(e.clientX)); });
+cv.addEventListener('pointermove',e=>{ if(e.buttons) pointDown(canvasX(e.clientX)); });
+cv.addEventListener('pointerup',()=>{ dino.target=null; });
+cv.addEventListener('pointerleave',()=>{ dino.target=null; });
+
+$('startBtn').onclick=start;
+$('againBtn').onclick=start;
+document.querySelectorAll('.diff[data-diff]').forEach(b=>b.onclick=()=>{ diff=b.dataset.diff;
+  document.querySelectorAll('.diff').forEach(d=>d.classList.toggle('sel',d===b)); });
+
+/* ---------- update ---------- */
+const SPEED=5.2;
+function update(dt){
+  if(state!=='playing') return;
+  elapsed += dt/60;
+  const mul = 1 + elapsed*DIFFS[diff].ramp;
+
+  // dino movement
+  if(dino.target!=null){
+    const step=SPEED*1.6*dt; const d=dino.target-dino.x;
+    dino.x += Math.abs(d)<step ? d : Math.sign(d)*step;
+  } else {
+    let vx=0; if(keys.left) vx-=SPEED; if(keys.right) vx+=SPEED; dino.x += vx*dt;
+  }
+  dino.x=Math.max(dino.w/2, Math.min(W-dino.w/2, dino.x));
+
+  // spawn
+  spawnTimer -= dt*16.67;
+  const every = Math.max(320, DIFFS[diff].spawn - elapsed*8);
+  if(spawnTimer<=0){
+    spawnTimer=every;
+    const bad=Math.random()<DIFFS[diff].hazard;
+    const emoji = bad ? BAD[(Math.random()*BAD.length)|0] : GOOD[(Math.random()*GOOD.length)|0];
+    items.push({ x:30+Math.random()*(W-60), y:-30, vy:(DIFFS[diff].vy+Math.random()*0.8)*mul, e:emoji, good:!bad, r:18 });
+  }
+
+  // items
+  const catchTop=GROUND-46, catchBot=GROUND-2, half=dino.w/2-6;
+  for(let i=items.length-1;i>=0;i--){
+    const it=items[i]; it.y += it.vy*dt;
+    const inMouth = (it.y>catchTop && it.y<catchBot && Math.abs(it.x-dino.x)<half);
+    if(inMouth){
+      if(it.good){ score += 10*combo; combo=Math.min(9,combo+1); chomp=8; sfxChomp();
+        popText('+'+(10*(combo-1<1?1:combo-1)), it.x, it.y, 'var(--green)'); burst(it.x,it.y,'var(--green)'); }
+      else { lives--; combo=1; hurt=12; shake=reduceMotion?0:10; sfxHit(); burst(it.x,it.y,'var(--magenta)');
+        if(lives<=0){ items.splice(i,1); updateHUD(); gameOver(); return; } }
+      items.splice(i,1); updateHUD(); continue;
+    }
+    if(it.y>H+30){ if(it.good) combo=1, updateHUD(); items.splice(i,1); }
+  }
+
+  // particles
+  for(let i=particles.length-1;i>=0;i--){ const p=particles[i];
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=0.25*dt; p.life-=0.025*dt; if(p.life<=0) particles.splice(i,1); }
+  if(chomp>0) chomp-=dt; if(hurt>0) hurt-=dt; if(shake>0){ shake-=0.6*dt; if(shake<0) shake=0; }
+}
+function popText(t,x,y,col){ particles.push({txt:t,x,y,vx:0,vy:-2,life:1,col,big:true}); }
+function burst(x,y,col){ if(reduceMotion) return;
+  for(let i=0;i<10;i++) particles.push({x,y,vx:(Math.random()-0.5)*6,vy:-Math.random()*5-1,life:0.9,col}); }
+
+/* ---------- render ---------- */
+function render(){
+  ctx.save();
+  const sx=shake>0?(Math.random()-0.5)*shake:0, sy=shake>0?(Math.random()-0.5)*shake:0;
+  ctx.translate(sx,sy);
+
+  // sky
+  const g=ctx.createLinearGradient(0,0,0,GROUND); g.addColorStop(0,'#0d2a16'); g.addColorStop(1,'#13502a');
+  ctx.fillStyle=g; ctx.fillRect(-10,-10,W+20,GROUND+20);
+  // far hills
+  ctx.fillStyle='rgba(255,255,255,.05)';
+  for(let i=0;i<5;i++){ ctx.beginPath(); ctx.arc(120+i*180,GROUND,90,Math.PI,0); ctx.fill(); }
+  // ground
+  ctx.fillStyle='#3a2a14'; ctx.fillRect(-10,GROUND,W+20,H-GROUND+10);
+  ctx.fillStyle='#5a3f1e'; for(let x=-(0);x<W;x+=44) ctx.fillRect(x,GROUND,22,H-GROUND);
+  ctx.fillStyle=hurt>0&&Math.floor(hurt)%2===0?'#ff2bb1':'#3bf07a'; ctx.fillRect(-10,GROUND,W+20,4);
+
+  // items
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  items.forEach(it=>{ ctx.font='30px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
+    ctx.fillText(it.e, it.x, it.y); });
+
+  // dino
+  const sc = chomp>0 ? 1.18 : 1;
+  ctx.font=Math.round(46*sc)+'px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
+  if(hurt>0 && Math.floor(hurt)%2===0) ctx.globalAlpha=0.4;
+  ctx.fillText('🦖', dino.x, GROUND-26);
+  ctx.globalAlpha=1;
+
+  // particles
+  particles.forEach(p=>{ ctx.globalAlpha=Math.max(0,p.life);
+    if(p.txt){ ctx.fillStyle=p.col; ctx.font='12px "Press Start 2P",monospace'; ctx.fillText(p.txt,p.x,p.y); }
+    else { ctx.fillStyle=p.col; ctx.fillRect(p.x-2,p.y-2,5,5); } });
+  ctx.globalAlpha=1;
+  ctx.restore();
+}
+
+/* ---------- loop ---------- */
+let last=performance.now();
+function loop(now){ let dt=(now-last)/16.67; if(dt>2.5) dt=2.5; last=now; update(dt); render(); requestAnimationFrame(loop); }
+updateHUD(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
