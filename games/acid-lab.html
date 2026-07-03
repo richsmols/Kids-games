@@ -134,6 +134,12 @@
   <div class="lane modrow acc"><div class="name" style="color:var(--accent)">accent</div><div class="pads" id="bAcc"></div></div>
   <div class="lane modrow sld"><div class="name" style="color:var(--slide)">slide</div><div class="pads" id="bSld"></div></div>
 
+  <div class="acid" style="margin-top:12px">
+    <div class="knob"><label>Sub</label><input type="range" class="mini" id="sub" min="0" max="100" value="60"><span class="val" id="subV">60%</span></div>
+    <div class="knob"><label>Bass Boost</label><input type="range" class="mini" id="bassEQ" min="0" max="12" value="3"><span class="val" id="bassEQV">+3 dB</span></div>
+    <div class="knob"><label>Bass Octave</label><div class="btns"><button class="chip sel" id="octMid">Mid</button><button class="chip" id="octLow">Low</button></div></div>
+  </div>
+
   <div class="sect" style="--c:var(--acid)"><span class="dot"></span> Acid <span class="sub">· squelchy line over the top</span></div>
   <div class="acidwrap">
     <div id="acidRoll"></div>
@@ -165,6 +171,7 @@ const NROWS=NOTES.length, LEAD_OCT=4;
 let bpm=124, swing=0, playing=false, currentStep=0, nextTime=0, timer=null;
 let drums=[], bass=[], lead=[];
 const acid={wave:'sawtooth',cutoff:340,res:14,decay:0.26,env:0.55,accent:0.6};
+let subLevel=0.6, bassOct=1, bassBoost=3;
 let acidColor='#c5ff4a';
 let recArmed=false, recording=false, recBuffers=[], recLen=0, recNode=null;
 const SLOTS=6; let slots=new Array(SLOTS).fill(null), selectedSlot=0, pendingLoad=null;
@@ -176,7 +183,7 @@ const $=id=>document.getElementById(id);
 function col(i){ return i%4===0 && i>0; }
 
 /* ---------- audio ---------- */
-let ctx=null, master=null, drumBus=null, bassBus=null, leadBus=null, noiseBuf=null, lastBassF=null, lastLeadF=null;
+let ctx=null, master=null, drumBus=null, bassBus=null, leadBus=null, bassEQ=null, noiseBuf=null, lastBassF=null, lastLeadF=null;
 function initAudio(){
   if(ctx) return;
   ctx=new (window.AudioContext||window.webkitAudioContext)();
@@ -187,7 +194,9 @@ function initAudio(){
   recNode.onaudioprocess=e=>{ const out=e.outputBuffer.getChannelData(0); out.fill(0); if(!recording) return;
     const ch=e.inputBuffer.getChannelData(0); recBuffers.push(new Float32Array(ch)); recLen+=ch.length; };
   drumBus=ctx.createGain(); drumBus.gain.value=0.9; drumBus.connect(master);
-  bassBus=ctx.createGain(); bassBus.gain.value=0.85; bassBus.connect(master);
+  bassBus=ctx.createGain(); bassBus.gain.value=0.9;
+  bassEQ=ctx.createBiquadFilter(); bassEQ.type='lowshelf'; bassEQ.frequency.value=130; bassEQ.gain.value=bassBoost;
+  bassBus.connect(bassEQ); bassEQ.connect(master);
   leadBus=ctx.createGain(); leadBus.gain.value=0.7; leadBus.connect(master);
   const n=ctx.sampleRate*1.0; noiseBuf=ctx.createBuffer(1,n,ctx.sampleRate);
   const d=noiseBuf.getChannelData(0); for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
@@ -215,13 +224,19 @@ function ride(t){ const s=noise(),bp=ctx.createBiquadFilter(),hp=ctx.createBiqua
 function drumHit(l,t){ [kick,clap,(t)=>hat(t,false),(t)=>hat(t,true),clave,ride,snare][l](t); }
 
 function bassVoice(t,freq,accent,slide){
+  freq=freq*bassOct;
   const o=ctx.createOscillator(),f=ctx.createBiquadFilter(),a=ctx.createGain();
   o.type='sawtooth'; o.connect(f); f.connect(a); a.connect(bassBus); f.type='lowpass'; f.Q.value=4;
   const step=(60/bpm)/4, dur=slide?step*1.04:step*0.9+0.06;
   if(slide&&lastBassF){ o.frequency.setValueAtTime(lastBassF,t); o.frequency.exponentialRampToValueAtTime(freq,t+0.05); } else o.frequency.setValueAtTime(freq,t);
   const peak=accent?1700:1150; f.frequency.setValueAtTime(peak,t); f.frequency.exponentialRampToValueAtTime(360,t+0.18);
   const vol=accent?0.98:0.72; a.gain.setValueAtTime(0.0001,t); a.gain.exponentialRampToValueAtTime(vol,t+0.006); a.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-  o.start(t); o.stop(t+dur+0.05); lastBassF=freq;
+  o.start(t); o.stop(t+dur+0.05);
+  if(subLevel>0.001){ const so=ctx.createOscillator(),sg=ctx.createGain(); so.type='sine';
+    if(slide&&lastBassF){ so.frequency.setValueAtTime(lastBassF,t); so.frequency.exponentialRampToValueAtTime(freq,t+0.05); } else so.frequency.setValueAtTime(freq,t);
+    const sv=subLevel*(accent?1.05:0.85); sg.gain.setValueAtTime(0.0001,t); sg.gain.exponentialRampToValueAtTime(sv,t+0.01); sg.gain.exponentialRampToValueAtTime(0.0001,t+dur*1.12);
+    so.connect(sg); sg.connect(bassBus); so.start(t); so.stop(t+dur*1.12+0.05); }
+  lastBassF=freq;
 }
 function acidVoice(t,freq,accent,slide){
   const o=ctx.createOscillator(),f=ctx.createBiquadFilter(),a=ctx.createGain();
@@ -309,6 +324,10 @@ $('decay').oninput=e=>{ acid.decay=(+e.target.value)/100; syncAcid(); };
 $('env').oninput=e=>{ acid.env=(+e.target.value)/100; syncAcid(); };
 $('waveSaw').onclick=()=>{ acid.wave='sawtooth'; syncAcid(); };
 $('waveSq').onclick=()=>{ acid.wave='square'; syncAcid(); };
+$('sub').oninput=e=>{ subLevel=(+e.target.value)/100; $('subV').textContent=(+e.target.value)+'%'; };
+$('bassEQ').oninput=e=>{ bassBoost=+e.target.value; if(bassEQ) bassEQ.gain.value=bassBoost; $('bassEQV').textContent='+'+bassBoost+' dB'; };
+$('octMid').onclick=()=>{ bassOct=1; $('octMid').classList.add('sel'); $('octLow').classList.remove('sel'); };
+$('octLow').onclick=()=>{ bassOct=0.5; $('octLow').classList.add('sel'); $('octMid').classList.remove('sel'); };
 
 const PATCHES={
   Squelch:{wave:'sawtooth',cutoff:340,res:20,decay:0.26,env:0.85,accent:0.6,col:'#c5ff4a'},
