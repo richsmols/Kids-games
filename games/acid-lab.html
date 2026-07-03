@@ -11,7 +11,7 @@
 <style>
   :root{
     --chassis:#15131f; --panel:#211d33; --panel2:#2a2540; --edge:#3a3357; --txt:#efeefb; --muted:#9990bd;
-    --kick:#ff5a5f; --clap:#ffc857; --chat:#2ec4b6; --ohat:#4cc9f0; --clave:#b56cff;
+    --kick:#ff5a5f; --clap:#ffc857; --chat:#2ec4b6; --ohat:#4cc9f0; --clave:#b56cff; --cowbell:#ff8e2b;
     --bass:#ff9f43; --acid:#c5ff4a; --accent:#ff4d9d; --slide:#56b3ff;
     --disp:'DM Mono',ui-monospace,monospace; --ui:'Fredoka',system-ui,sans-serif;
   }
@@ -19,7 +19,7 @@
   html,body{margin:0;height:100%;}
   body{background:radial-gradient(700px 400px at 50% -10%,#2a2447 0%,transparent 60%),linear-gradient(180deg,#15131f,#0c0a16);
     color:var(--txt);font-family:var(--ui);display:flex;align-items:flex-start;justify-content:center;min-height:100%;padding:14px;}
-  .box{width:100%;max-width:860px;background:linear-gradient(180deg,#241f39,#1a1628);border:1px solid var(--edge);
+  .box{width:100%;max-width:1180px;background:linear-gradient(180deg,#241f39,#1a1628);border:1px solid var(--edge);
     border-radius:22px;padding:16px;box-shadow:0 24px 60px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.04);}
 
   .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
@@ -47,6 +47,7 @@
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
     background:radial-gradient(circle at 35% 30%,#fff,#b9b2e0);border:2px solid #15131f;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.5);}
   input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#cfc9ee;border:2px solid #15131f;cursor:pointer;}
+  .knob:focus-within,.ctrl:focus-within{outline:2px solid #8be9fd;outline-offset:6px;border-radius:10px;}
 
   .leds{display:flex;gap:4px;margin:0 0 12px 64px;}
   .led{flex:1;height:9px;border-radius:4px;background:#0f0c1a;}
@@ -69,8 +70,9 @@
   .lane[data-l="2"] .pad.on{background:var(--chat);box-shadow:0 0 8px rgba(46,196,182,.5);}
   .lane[data-l="3"] .pad.on{background:var(--ohat);box-shadow:0 0 8px rgba(76,201,240,.5);}
   .lane[data-l="4"] .pad.on{background:var(--clave);box-shadow:0 0 8px rgba(181,108,255,.5);}
-  .lane[data-l="5"] .pad.on{background:#ffe066;box-shadow:0 0 8px rgba(255,224,102,.5);}
-  .lane[data-l="6"] .pad.on{background:#ff7eb6;box-shadow:0 0 8px rgba(255,126,182,.5);}
+  .lane[data-l="5"] .pad.on{background:var(--cowbell);box-shadow:0 0 8px rgba(255,142,43,.55);}
+  .lane[data-l="6"] .pad.on{background:#ffe066;box-shadow:0 0 8px rgba(255,224,102,.5);}
+  .lane[data-l="7"] .pad.on{background:#ff7eb6;box-shadow:0 0 8px rgba(255,126,182,.5);}
   .col-beat{box-shadow:inset 0 0 0 2px rgba(255,255,255,.7)!important;}
 
   .roll .name{font-family:var(--disp);font-size:10px;}
@@ -86,6 +88,7 @@
   .modrow.sld .mod.on{background:var(--slide);box-shadow:0 0 7px rgba(86,179,255,.6);border-color:transparent;}
 
   .acidwrap{background:#1b172b;border:1px solid var(--edge);border-radius:14px;padding:12px 14px;margin-top:6px;}
+  .acid{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;background:#1b172b;border:1px solid var(--edge);border-radius:14px;padding:12px 14px;}
   .knobs{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;border-top:1px dashed #322b4d;padding-top:12px;}
   .knob{display:flex;flex-direction:column;gap:5px;}
   .knob label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:600;}
@@ -104,13 +107,21 @@
   .slot.filled{color:#16210a;background:#9b8cff;border-color:transparent;}
   .slot.sel{outline:2px solid #fff;outline-offset:2px;}
   .slot.queued{animation:recpulse .8s infinite;}
+  body.kid .adv{display:none !important;}
+  .mode{display:flex;align-items:center;gap:7px;background:#1b172b;border:1px solid var(--edge);border-radius:14px;padding:5px 9px;cursor:pointer;}
+  .mode .mlabel{font-size:9px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--muted);transition:.12s;}
+  .mtrack{position:relative;width:38px;height:20px;border-radius:20px;background:#0f0c1a;border:1px solid var(--edge);}
+  .mknob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#9b8cff;transition:.14s;}
+  body:not(.kid) .mknob{left:20px;background:#8be9fd;}
+  body:not(.kid) .mode .mlabel.a{color:#8be9fd;}
+  body.kid .mode .mlabel.k{color:#9b8cff;}
   .chip.save{background:#2a2540;}
   .hint{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6;}
   .hint b{color:var(--txt);}
   @media (max-width:560px){ .brand b{font-size:18px;} .lane .name{width:46px;font-size:10px;} .leds{margin-left:52px;} }
 </style>
 </head>
-<body>
+<body class="kid">
 <div class="box">
   <div class="top">
     <div class="brand"><b>ACID LAB</b><span>make an acid house groove</span></div>
@@ -119,14 +130,15 @@
     <div class="ctrl"><label>Tempo</label><div class="row"><input type="range" class="wide" id="bpm" min="90" max="180" value="124"><span class="val" id="bpmVal">124</span></div></div>
     <div class="ctrl"><label>Volume</label><div class="row"><input type="range" class="mini" id="vol" min="0" max="100" value="80"></div></div>
     <div class="ctrl"><label>Swing</label><div class="row"><input type="range" class="mini" id="swing" min="0" max="60" value="0"><span class="val" id="swingV">0%</span></div></div>
+    <button class="mode" id="modeToggle" role="switch" aria-checked="false" title="Switch between simple Kids controls and the full Adult set"><span class="mlabel k">Kids</span><span class="mtrack"><span class="mknob"></span></span><span class="mlabel a">Adult</span></button>
   </div>
 
-  <div class="sect" style="--c:#9b8cff"><span class="dot"></span> Patterns <span class="sub">· save up to 6 · tap to switch (locks to the bar while playing)</span></div>
+  <div class="sect" style="--c:#9b8cff"><span class="dot"></span> Patterns <span class="sub">· tap to save &amp; switch · locks to the bar while playing</span></div>
   <div class="slots" id="slots"></div>
 
   <div class="leds" id="leds"></div>
 
-  <div class="sect"><span class="dots"><i style="background:var(--kick)"></i><i style="background:var(--clap)"></i><i style="background:var(--chat)"></i><i style="background:var(--ohat)"></i><i style="background:var(--clave)"></i><i style="background:#ffe066"></i><i style="background:#ff7eb6"></i></span> Beat <span class="sub">· tap the drums</span></div>
+  <div class="sect"><span class="dots"><i style="background:var(--kick)"></i><i style="background:var(--clap)"></i><i style="background:var(--chat)"></i><i style="background:var(--ohat)"></i><i style="background:var(--clave)"></i><i style="background:var(--cowbell)"></i><i style="background:#ffe066"></i><i style="background:#ff7eb6"></i></span> Beat <span class="sub">· tap the drums</span></div>
   <div id="drums"></div>
 
   <div class="sect" style="--c:var(--bass)"><span class="dot"></span> Bassline <span class="sub">· low notes</span></div>
@@ -134,7 +146,7 @@
   <div class="lane modrow acc"><div class="name" style="color:var(--accent)">accent</div><div class="pads" id="bAcc"></div></div>
   <div class="lane modrow sld"><div class="name" style="color:var(--slide)">slide</div><div class="pads" id="bSld"></div></div>
 
-  <div class="acid" style="margin-top:12px">
+  <div class="acid adv" style="margin-top:12px">
     <div class="knob"><label>Sub</label><input type="range" class="mini" id="sub" min="0" max="100" value="60"><span class="val" id="subV">60%</span></div>
     <div class="knob"><label>Bass Boost</label><input type="range" class="mini" id="bassEQ" min="0" max="12" value="3"><span class="val" id="bassEQV">+3 dB</span></div>
     <div class="knob"><label>Bass Octave</label><div class="btns"><button class="chip sel" id="octMid">Mid</button><button class="chip" id="octLow">Low</button></div></div>
@@ -147,12 +159,20 @@
     <div class="lane modrow sld"><div class="name" style="color:var(--slide)">slide</div><div class="pads" id="aSld"></div></div>
     <div class="knobs">
       <div class="knob"><label>Cutoff</label><input type="range" class="mini" id="cutoff" min="80" max="2400" value="340"><span class="val" id="cutoffV"></span></div>
-      <div class="knob"><label>Resonance</label><input type="range" class="mini" id="res" min="1" max="32" value="14"><span class="val" id="resV"></span></div>
+      <div class="knob adv"><label>Resonance</label><input type="range" class="mini" id="res" min="1" max="32" value="14"><span class="val" id="resV"></span></div>
       <div class="knob"><label>Decay</label><input type="range" class="mini" id="decay" min="5" max="60" value="26"><span class="val" id="decayV"></span></div>
-      <div class="knob"><label>Squelch</label><input type="range" class="mini" id="env" min="0" max="160" value="55"><span class="val" id="envV"></span></div>
+      <div class="knob adv"><label>Squelch</label><input type="range" class="mini" id="env" min="0" max="160" value="55"><span class="val" id="envV"></span></div>
       <div class="knob"><label>Wave</label><div class="btns"><button class="chip" id="waveSaw" style="--c:var(--acid)">Saw</button><button class="chip" id="waveSq" style="--c:var(--acid)">Square</button></div></div>
       <div class="knob"><label>Sound</label><div class="btns" id="patches"></div></div>
     </div>
+  </div>
+
+  <div class="sect adv" style="--c:#8be9fd"><span class="dot"></span> FX <span class="sub">· effects across the whole mix</span></div>
+  <div class="acid adv">
+    <div class="knob"><label>Overdrive</label><input type="range" class="mini" id="fxOD" min="0" max="100" value="0"><span class="val" id="fxODV">0%</span></div>
+    <div class="knob"><label>Flanger</label><input type="range" class="mini" id="fxFL" min="0" max="100" value="0"><span class="val" id="fxFLV">0%</span></div>
+    <div class="knob"><label>Echo</label><input type="range" class="mini" id="fxEC" min="0" max="100" value="0"><span class="val" id="fxECV">0%</span></div>
+    <div class="knob"><label>Reverb</label><input type="range" class="mini" id="fxRV" min="0" max="100" value="0"><span class="val" id="fxRVV">0%</span></div>
   </div>
 
   <div class="presets" id="presets"></div>
@@ -162,9 +182,9 @@
 <script>
 (function(){
 "use strict";
-const STEPS=16, LANES=7;
-const laneNames=['Kick','Clap','Cl Hat','Op Hat','Clave','Ride','Snare'];
-const laneCols=['#ff5a5f','#ffc857','#2ec4b6','#4cc9f0','#b56cff','#ffe066','#ff7eb6'];
+const STEPS=16, LANES=8;
+const laneNames=['Kick','Clap','Cl Hat','Op Hat','Clave','Cowbell','Ride','Snare'];
+const laneCols=['#ff5a5f','#ffc857','#2ec4b6','#4cc9f0','#b56cff','#ff8e2b','#ffe066','#ff7eb6'];
 const NOTES=[ {n:'A',f:55.00},{n:'C',f:65.41},{n:'D',f:73.42},{n:'E',f:82.41},{n:'G',f:98.00},{n:'A+',f:110.0},{n:'C+',f:130.8},{n:'D+',f:146.8} ];
 const NROWS=NOTES.length, LEAD_OCT=4;
 
@@ -174,7 +194,7 @@ const acid={wave:'sawtooth',cutoff:340,res:14,decay:0.26,env:0.55,accent:0.6};
 let subLevel=0.6, bassOct=1, bassBoost=3;
 let acidColor='#c5ff4a';
 let recArmed=false, recording=false, recBuffers=[], recLen=0, recNode=null;
-const SLOTS=6; let slots=new Array(SLOTS).fill(null), selectedSlot=0, pendingLoad=null;
+const SLOTS=8; let slots=new Array(SLOTS).fill(null), selectedSlot=0, pendingLoad=null;
 
 for(let l=0;l<LANES;l++) drums.push(new Array(STEPS).fill(false));
 for(let i=0;i<STEPS;i++){ bass.push({note:-1,accent:false,slide:false}); lead.push({note:-1,accent:false,slide:false}); }
@@ -184,12 +204,13 @@ function col(i){ return i%4===0 && i>0; }
 
 /* ---------- audio ---------- */
 let ctx=null, master=null, drumBus=null, bassBus=null, leadBus=null, bassEQ=null, noiseBuf=null, lastBassF=null, lastLeadF=null;
+let odWet=null, flWet=null, ecWet=null, rvWet=null, ecDelay=null; const fx={od:0,fl:0,ec:0,rv:0};
 function initAudio(){
   if(ctx) return;
   ctx=new (window.AudioContext||window.webkitAudioContext)();
   master=ctx.createGain(); master.gain.value=0.8;
   const comp=ctx.createDynamicsCompressor(); comp.threshold.value=-10; comp.ratio.value=4; comp.attack.value=0.003; comp.release.value=0.2;
-  master.connect(comp); comp.connect(ctx.destination);
+  buildFX(master, comp); comp.connect(ctx.destination);
   recNode=ctx.createScriptProcessor(4096,1,1); comp.connect(recNode); recNode.connect(ctx.destination);
   recNode.onaudioprocess=e=>{ const out=e.outputBuffer.getChannelData(0); out.fill(0); if(!recording) return;
     const ch=e.inputBuffer.getChannelData(0); recBuffers.push(new Float32Array(ch)); recLen+=ch.length; };
@@ -201,6 +222,31 @@ function initAudio(){
   const n=ctx.sampleRate*1.0; noiseBuf=ctx.createBuffer(1,n,ctx.sampleRate);
   const d=noiseBuf.getChannelData(0); for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
 }
+function odCurve(k){ const N=1024,c=new Float32Array(N),dg=Math.PI/180;
+  for(let i=0;i<N;i++){ const x=i*2/N-1; c[i]=(3+k)*x*20*dg/(Math.PI+k*Math.abs(x)); } return c; }
+function reverbIR(sec,decay){ const rate=ctx.sampleRate,len=(rate*sec)|0,b=ctx.createBuffer(2,len,rate);
+  for(let ch=0;ch<2;ch++){ const dd=b.getChannelData(ch); for(let i=0;i<len;i++) dd[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay); } return b; }
+function buildFX(src,dst){
+  // Overdrive (fixed curve, blended in)
+  const odSh=ctx.createWaveShaper(); odSh.curve=odCurve(50); odSh.oversample='4x';
+  const odOut=ctx.createGain(); odWet=ctx.createGain(); odWet.gain.value=0;
+  src.connect(odOut); src.connect(odSh); odSh.connect(odWet); odWet.connect(odOut);
+  // Flanger (modulated short delay + feedback)
+  const flOut=ctx.createGain(); flWet=ctx.createGain(); flWet.gain.value=0;
+  const flD=ctx.createDelay(0.05); flD.delayTime.value=0.004; const flFb=ctx.createGain(); flFb.gain.value=0.55;
+  const lfo=ctx.createOscillator(), lfoG=ctx.createGain(); lfo.frequency.value=0.3; lfoG.gain.value=0.002; lfo.connect(lfoG); lfoG.connect(flD.delayTime); lfo.start();
+  odOut.connect(flOut); odOut.connect(flD); flD.connect(flFb); flFb.connect(flD); flD.connect(flWet); flWet.connect(flOut);
+  // Echo / delay (tempo-synced feedback delay)
+  const ecOut=ctx.createGain(); ecWet=ctx.createGain(); ecWet.gain.value=0;
+  ecDelay=ctx.createDelay(1.5); ecDelay.delayTime.value=(60/bpm)/2; const ecFb=ctx.createGain(); ecFb.gain.value=0.38;
+  flOut.connect(ecOut); flOut.connect(ecDelay); ecDelay.connect(ecFb); ecFb.connect(ecDelay); ecDelay.connect(ecWet); ecWet.connect(ecOut);
+  // Reverb (synthetic impulse)
+  const rvOut=ctx.createGain(); rvWet=ctx.createGain(); rvWet.gain.value=0;
+  const conv=ctx.createConvolver(); conv.buffer=reverbIR(2.2,2.5);
+  ecOut.connect(rvOut); ecOut.connect(conv); conv.connect(rvWet); rvWet.connect(rvOut);
+  rvOut.connect(dst); applyFX();
+}
+function applyFX(){ if(odWet) odWet.gain.value=fx.od*0.7; if(flWet) flWet.gain.value=fx.fl; if(ecWet) ecWet.gain.value=fx.ec*0.6; if(rvWet) rvWet.gain.value=fx.rv*0.7; if(ecDelay) ecDelay.delayTime.value=(60/bpm)/2; }
 function noise(){ const s=ctx.createBufferSource(); s.buffer=noiseBuf; return s; }
 function kick(t){ const o=ctx.createOscillator(),g=ctx.createGain(); o.type='sine';
   o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(46,t+0.11);
@@ -211,6 +257,10 @@ function hat(t,open){ const s=noise(),hp=ctx.createBiquadFilter(),g=ctx.createGa
   g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(open?0.45:0.5,t+0.002); g.gain.exponentialRampToValueAtTime(0.001,t+dec); s.connect(hp); hp.connect(g); g.connect(drumBus); s.start(t); s.stop(t+dec+0.02); }
 function clave(t){ const o=ctx.createOscillator(),g=ctx.createGain(); o.type='triangle'; o.frequency.setValueAtTime(2200,t);
   g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.5,t+0.002); g.gain.exponentialRampToValueAtTime(0.001,t+0.06); o.connect(g); g.connect(drumBus); o.start(t); o.stop(t+0.08); }
+function cowbell(t){ const bp=ctx.createBiquadFilter(),g=ctx.createGain(); bp.type='bandpass'; bp.frequency.value=2640; bp.Q.value=1.3;
+  const o1=ctx.createOscillator(),o2=ctx.createOscillator(); o1.type='square'; o2.type='square'; o1.frequency.value=540; o2.frequency.value=800;
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.5,t+0.003); g.gain.exponentialRampToValueAtTime(0.18,t+0.03); g.gain.exponentialRampToValueAtTime(0.001,t+0.32);
+  o1.connect(bp); o2.connect(bp); bp.connect(g); g.connect(drumBus); o1.start(t); o2.start(t); o1.stop(t+0.34); o2.stop(t+0.34); }
 function snare(t){ const s=noise(),hp=ctx.createBiquadFilter(),g=ctx.createGain(); hp.type='highpass'; hp.frequency.value=1800;
   g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.7,t+0.003); g.gain.exponentialRampToValueAtTime(0.001,t+0.15); s.connect(hp); hp.connect(g); g.connect(drumBus); s.start(t); s.stop(t+0.17);
   const o=ctx.createOscillator(),og=ctx.createGain(); o.type='triangle'; o.frequency.setValueAtTime(190,t); o.frequency.exponentialRampToValueAtTime(120,t+0.08);
@@ -221,7 +271,7 @@ function ride(t){ const s=noise(),bp=ctx.createBiquadFilter(),hp=ctx.createBiqua
   s.connect(bp); bp.connect(hp); hp.connect(g); g.connect(drumBus); s.start(t); s.stop(t+0.52);
   const o=ctx.createOscillator(),og=ctx.createGain(); o.type='square'; o.frequency.value=5400;
   og.gain.setValueAtTime(0.05,t); og.gain.exponentialRampToValueAtTime(0.001,t+0.4); o.connect(og); og.connect(drumBus); o.start(t); o.stop(t+0.42); }
-function drumHit(l,t){ [kick,clap,(t)=>hat(t,false),(t)=>hat(t,true),clave,ride,snare][l](t); }
+function drumHit(l,t){ [kick,clap,(t)=>hat(t,false),(t)=>hat(t,true),clave,cowbell,ride,snare][l](t); }
 
 function bassVoice(t,freq,accent,slide){
   freq=freq*bassOct;
@@ -328,6 +378,15 @@ $('sub').oninput=e=>{ subLevel=(+e.target.value)/100; $('subV').textContent=(+e.
 $('bassEQ').oninput=e=>{ bassBoost=+e.target.value; if(bassEQ) bassEQ.gain.value=bassBoost; $('bassEQV').textContent='+'+bassBoost+' dB'; };
 $('octMid').onclick=()=>{ bassOct=1; $('octMid').classList.add('sel'); $('octLow').classList.remove('sel'); };
 $('octLow').onclick=()=>{ bassOct=0.5; $('octLow').classList.add('sel'); $('octMid').classList.remove('sel'); };
+$('fxOD').oninput=e=>{ fx.od=(+e.target.value)/100; $('fxODV').textContent=(+e.target.value)+'%'; applyFX(); };
+$('fxFL').oninput=e=>{ fx.fl=(+e.target.value)/100; $('fxFLV').textContent=(+e.target.value)+'%'; applyFX(); };
+$('fxEC').oninput=e=>{ fx.ec=(+e.target.value)/100; $('fxECV').textContent=(+e.target.value)+'%'; applyFX(); };
+$('fxRV').oninput=e=>{ fx.rv=(+e.target.value)/100; $('fxRVV').textContent=(+e.target.value)+'%'; applyFX(); };
+document.addEventListener('keydown',e=>{ const el=document.activeElement;
+  if(el && el.tagName==='INPUT' && el.type==='range' && (e.key==='ArrowLeft'||e.key==='ArrowRight')){
+    e.preventDefault(); const mn=+el.min, mx=+el.max, st=Math.max(1,Math.round((mx-mn)/40));
+    el.value=Math.max(mn,Math.min(mx,(+el.value)+(e.key==='ArrowRight'?st:-st)));
+    el.dispatchEvent(new Event('input',{bubbles:true})); } });
 
 const PATCHES={
   Squelch:{wave:'sawtooth',cutoff:340,res:20,decay:0.26,env:0.85,accent:0.6,col:'#c5ff4a'},
@@ -344,7 +403,7 @@ function buildPatches(){ const wrap=$('patches'); Object.keys(PATCHES).forEach(k
 
 /* ---------- transport ---------- */
 $('play').onclick=()=>{ playing?stopPlay():startPlay(); };
-$('bpm').oninput=e=>{ bpm=+e.target.value; $('bpmVal').textContent=bpm; };
+$('bpm').oninput=e=>{ bpm=+e.target.value; $('bpmVal').textContent=bpm; applyFX(); };
 $('vol').oninput=e=>{ if(master) master.gain.value=(+e.target.value)/100; };
 $('swing').oninput=e=>{ swing=(+e.target.value)/100; $('swingV').textContent=(+e.target.value)+'%'; };
 
@@ -393,7 +452,7 @@ function clearAll(){ for(let l=0;l<LANES;l++) drums[l].fill(false);
   for(let i=0;i<STEPS;i++){ bass[i]={note:-1,accent:false,slide:false}; lead[i]={note:-1,accent:false,slide:false}; } refreshAll(); }
 function setRow(l,a){ for(let i=0;i<STEPS;i++) drums[l][i]=a.indexOf(i)>=0; }
 function setArr(arr,list){ for(let i=0;i<STEPS;i++) arr[i]={note:-1,accent:false,slide:false}; list.forEach(([i,n,ac,sl])=>{ arr[i]={note:n,accent:!!ac,slide:!!sl}; }); }
-function setTempo(v){ bpm=v; $('bpm').value=v; $('bpmVal').textContent=v; }
+function setTempo(v){ bpm=v; $('bpm').value=v; $('bpmVal').textContent=v; applyFX(); }
 function setSwing(v){ swing=v; $('swing').value=Math.round(v*100); $('swingV').textContent=Math.round(v*100)+'%'; }
 
 const DEMOS={
@@ -459,15 +518,26 @@ function slotClick(i){ initAudio(); selectedSlot=i;
 function saveClick(){ slots[selectedSlot]=snapshot(); persist(); updateSlotUI();
   const b=$('saveBtn'); if(b){ b.textContent='Saved ✓'; setTimeout(()=>b.textContent='💾 Save',900); } }
 function buildSlots(){ const wrap=$('slots'); wrap.innerHTML='';
-  for(let i=0;i<SLOTS;i++){ const b=document.createElement('button'); b.className='slot'; b.dataset.i=i; b.textContent=(i+1); b.onclick=()=>slotClick(i); wrap.appendChild(b); }
+  for(let i=0;i<SLOTS;i++){ const b=document.createElement('button'); b.className='slot'+(i>=4?' adv':''); b.dataset.i=i; b.textContent=(i+1); b.onclick=()=>slotClick(i); wrap.appendChild(b); }
   const sv=document.createElement('button'); sv.className='chip save'; sv.id='saveBtn'; sv.textContent='💾 Save'; sv.onclick=saveClick; wrap.appendChild(sv);
   updateSlotUI(); }
+
+/* ---------- kid / adult mode ---------- */
+function mKey(){ return 'acidlab_mode_'+RECUSER; }
+function setMode(kid){
+  document.body.classList.toggle('kid', kid);
+  $('modeToggle').setAttribute('aria-checked', kid?'false':'true');
+  if(kid){ if(selectedSlot>3) selectedSlot=0; if(pendingLoad!=null && pendingLoad>3) pendingLoad=null; updateSlotUI(); }
+  try{ localStorage.setItem(mKey(), kid?'kid':'adult'); }catch(e){}
+}
+$('modeToggle').onclick=()=>setMode(!document.body.classList.contains('kid'));
 
 /* ---------- init ---------- */
 buildLEDs(); buildDrums();
 buildRoll(bass,$('bassRoll'),'bass',1,bassVoice); buildMods(bass,$('bAcc'),$('bSld'));
 buildRoll(lead,$('acidRoll'),'acid',LEAD_OCT,acidVoice); buildMods(lead,$('aAcc'),$('aSld'));
 buildPatches(); buildPresets(); loadPersisted(); buildSlots(); syncAcid();
+try{ setMode(localStorage.getItem(mKey())!=='adult'); }catch(e){ setMode(true); }
 DEMOS['Acid Trax']();
 })();
 </script>
