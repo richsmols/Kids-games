@@ -243,7 +243,7 @@ function show(view){
   $('topbar').classList.toggle('hide', !(me && me.status==='approved'));
   $('navGames').classList.toggle('on', view==='dashboard');
   $('navBoard').classList.toggle('on', view==='leaderboard');
-  if(view!=='game') $('gameFrame').src = 'about:blank';
+  if(view!=='game'){ $('gameFrame').src = 'about:blank'; document.querySelector('main').style.maxWidth=''; }
 }
 let toastT;
 function toast(msg){
@@ -327,6 +327,7 @@ function openGame(g){
   currentGame=g;
   $('gameTitle').textContent=g.name.toUpperCase();
   show('game');
+  document.querySelector('main').style.maxWidth = (g.id==='acid-lab' ? 'min(1180px,96vw)' : '');
   const u = me ? encodeURIComponent(me.username||'') : '';
   $('gameFrame').src = g.src + (g.src.indexOf('?')>=0?'&':'?') + 'u=' + u;
 }
