@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Frank's First Bank Heist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{ --ui:'Fredoka',system-ui,sans-serif; --mono:'DM Mono',monospace; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{background:#0c0a16;font-family:var(--ui);color:#eee;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;}
+  #stage{position:relative;line-height:0;}
+  canvas{display:block;border-radius:14px;background:#141024;box-shadow:0 0 0 3px #000,0 0 0 6px #241d3d,0 18px 50px rgba(0,0,0,.6);}
+  /* overlays */
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    background:radial-gradient(120% 120% at 50% 30%,rgba(30,22,54,.82),rgba(8,6,16,.94));border-radius:14px;padding:22px;gap:12px;}
+  .screen.hide{display:none;}
+  .screen h1{font-size:clamp(24px,5vw,40px);margin:0;font-weight:700;letter-spacing:.5px;
+    background:linear-gradient(90deg,#ffd166,#ff8e2b);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 2px 0 rgba(0,0,0,.25);}
+  .screen h2{font-size:clamp(20px,4.5vw,30px);margin:0;color:#ffd166;font-weight:700;}
+  .screen p{margin:2px 0;max-width:520px;font-size:clamp(13px,2.6vw,16px);color:#cfc7e6;line-height:1.5;font-weight:500;}
+  .rules{display:flex;flex-wrap:wrap;gap:10px 16px;justify-content:center;max-width:560px;margin:4px 0 2px;}
+  .rule{display:flex;align-items:center;gap:7px;font-size:13px;color:#e7e1f7;font-weight:500;background:#1c1633;border:1px solid #322a52;border-radius:10px;padding:7px 11px;}
+  .rule b{color:#ffd166;font-weight:700;}
+  .big{font-family:var(--mono);font-size:clamp(28px,7vw,46px);color:#c5ff4a;margin:2px 0;}
+  button.btn{font-family:var(--ui);font-weight:700;font-size:18px;color:#1a1226;background:linear-gradient(180deg,#ffd166,#ffb32b);
+    border:none;border-radius:12px;padding:13px 30px;cursor:pointer;box-shadow:0 4px 0 #b9791a;transition:transform .05s;}
+  button.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #b9791a;}
+  .sub{font-size:12px;color:#8b83a8;font-weight:500;}
+  .tiers{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:2px;}
+  .btn.easy{background:linear-gradient(180deg,#b6ff6b,#7ed321);box-shadow:0 4px 0 #4e8a12;color:#123005;}
+  .btn.med{background:linear-gradient(180deg,#ffd166,#ffb32b);box-shadow:0 4px 0 #b9791a;}
+  .btn.hard{background:linear-gradient(180deg,#ff8a8a,#ff5560);box-shadow:0 4px 0 #a52731;color:#2a0d10;}
+  .btn.easy:active{box-shadow:0 1px 0 #4e8a12;} .btn.med:active{box-shadow:0 1px 0 #b9791a;} .btn.hard:active{box-shadow:0 1px 0 #a52731;}
+  /* touch dpad */
+  #pad{position:absolute;left:14px;bottom:14px;width:150px;height:150px;display:none;opacity:.9;touch-action:none;}
+  #pad.show{display:block;}
+  .db{position:absolute;width:50px;height:50px;border-radius:13px;background:rgba(40,32,66,.7);border:1px solid rgba(150,130,210,.5);
+    display:flex;align-items:center;justify-content:center;color:#e7e1f7;font-size:22px;font-weight:700;}
+  .db:active{background:rgba(90,72,150,.9);}
+  #du{left:50px;top:0;} #dd{left:50px;top:100px;} #dl{left:0;top:50px;} #dr{left:100px;top:50px;}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="cv"></canvas>
+
+  <div id="pad">
+    <div class="db" id="du">▲</div><div class="db" id="dl">◀</div>
+    <div class="db" id="dr">▶</div><div class="db" id="dd">▼</div>
+  </div>
+
+  <div class="screen" id="scr-title">
+    <h1>Frank's First Bank Heist</h1>
+    <p id="hello">Baby Frank has spotted the bank. Sneak to the vault, stuff the cash into your romper, and make it back to the bus with Mum!</p>
+    <div class="rules">
+      <div class="rule">🎮 <span><b>Arrows / WASD</b> or tap the pad to waddle</span></div>
+      <div class="rule">🟥 <span>Dodge the blinking <b>lasers</b> — they blink on &amp; off</span></div>
+      <div class="rule">📷 <span>Stay out of <b>camera</b> &amp; <b>guard</b> cones or the <b>alarm</b> fills up</span></div>
+      <div class="rule">💰 <span>Grab <b>all the cash</b>, then run to the <b>bus</b> 🚌</span></div>
+    </div>
+    <div class="tiers">
+      <button class="btn easy" id="btnEasy">Easy</button>
+      <button class="btn med" id="btnMed">Medium</button>
+      <button class="btn hard" id="btnHard">Hard</button>
+    </div>
+    <div class="sub">Pick a difficulty &middot; 3 levels each &middot; 3 chances</div>
+  </div>
+
+  <div class="screen hide" id="scr-win">
+    <h1>You made the bus! 🚌</h1>
+    <p>Clean getaway. Mum didn't suspect a thing.</p>
+    <div class="big" id="winScore">0</div>
+    <button class="btn" id="againBtn">Rob it again</button>
+    <div class="sub" id="winSub"></div>
+  </div>
+
+  <div class="screen hide" id="scr-over">
+    <h2>Caught red-handed! 🚨</h2>
+    <p>The guards nabbed Frank. Better luck next time.</p>
+    <div class="big" id="overScore">0</div>
+    <button class="btn" id="retryBtn">Try again</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const TILE=40, COLS=21, ROWS=13, W=COLS*TILE, H=ROWS*TILE;
+const dpr=Math.min(window.devicePixelRatio||1,2);
+cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+function fit(){ const s=Math.min(window.innerWidth/W,(window.innerHeight)/H); cv.style.width=(W*s)+'px'; cv.style.height=(H*s)+'px'; }
+window.addEventListener('resize',fit); fit();
+
+const RECUSER=(function(){ try{ return new URLSearchParams(location.search).get('u')||''; }catch(e){ return ''; } })();
+if(RECUSER){ document.getElementById('hello').textContent="Ready, "+RECUSER+"? Sneak to the vault, stuff the cash into your romper, and make it back to the bus with Mum!"; }
+
+/* ---------- levels ---------- */
+const MAP1=[
+"#####################",
+"#E..................#",
+"#..................$#",
+"#..................$#",
+"#...................#",
+"#......#######......#",
+"#...................#",
+"#...................#",
+"#......#######......#",
+"#...................#",
+"#...................#",
+"#...................#",
+"#####################"];
+const MAP2=[
+"#####################",
+"#E..................#",
+"#...................#",
+"#........###........#",
+"#........#.#........#",
+"#........#.#........#",
+"#...................#",
+"#........#.#........#",
+"#........#.#........#",
+"#........###........#",
+"#..................$#",
+"#.................$$#",
+"#####################"];
+const MAP3=[
+"#####################",
+"#E.....#.....#......#",
+"#......#.....#......#",
+"#......#.....#......#",
+"#...................#",
+"#...................#",
+"#####.........#####.#",
+"#...................#",
+"#...................#",
+"#......#.....#.....$#",
+"#......#.....#.....$#",
+"#......#.....#.....$#",
+"#####################"];
+
+const MAP4=[
+"#####################",
+"#E..................#",
+"#...................#",
+"#..####.....####....#",
+"#...................#",
+"#...................#",
+"#....##.......##....#",
+"#...................#",
+"#...................#",
+"#..####.....####....#",
+"#$$.................#",
+"#$..................#",
+"#####################"];
+const MAP5=[
+"#####################",
+"#E..................#",
+"#...................#",
+"#.......#####.......#",
+"#.......#...........#",
+"#.......#...$$$.....#",
+"#.......#...........#",
+"#.......#####.......#",
+"#...................#",
+"#...................#",
+"#...................#",
+"#...................#",
+"#####################"];
+const MAP6=[
+"#####################",
+"#E..................#",
+"#.#.#.#.#.#.#.#.#.#.#",
+"#.#.#.#.#.#.#.#.#.#.#",
+"#.#.#.#.#.#.#.#.#.#.#",
+"#...................#",
+"#.#.#.#.#.#.#.#.#.#.#",
+"#.#.#.#.#.#.#.#.#.#.#",
+"#.#.#.#.#.#.#.#.#.#.#",
+"#...................#",
+"#.................$$#",
+"#...................#",
+"#####################"];
+const MAP7=[
+"#####################",
+"#E..................#",
+"#...............###.#",
+"#...............#$$.#",
+"#......#####....#$$.#",
+"#......#........#...#",
+"#......#....##......#",
+"#......#........#...#",
+"#......#####........#",
+"#...................#",
+"#...................#",
+"#...................#",
+"#####################"];
+const MAP8=[
+"#####################",
+"#E..................#",
+"#...................#",
+"#...##.......##.....#",
+"#...................#",
+"#........###........#",
+"#...................#",
+"#........###........#",
+"#...................#",
+"#....##.......##....#",
+"#...................#",
+"#.................$$#",
+"#####################"];
+const MAP9=[
+"#####################",
+"#E..................#",
+"#...#....#....#.....#",
+"#...................#",
+"#........###........#",
+"#...#...#...#...#...#",
+"#........###........#",
+"#...................#",
+"#...#....#....#.....#",
+"#...................#",
+"#...................#",
+"#.................$$#",
+"#####################"];
+
+// g = {path:[[c,r],...], ...} for a fixed patrol, or {mode:'wander', start:[c,r], ...} to roam corridors back & forth
+const LEVELS=[
+ // ---- EASY ----
+ { tier:0, map:MAP1, alarmUp:46,
+   lasers:[ {c1:12,r1:1,c2:18,r2:1,period:2.6,duty:0.45} ],
+   cams:[ {c:10,r:10,dir:-90,sweep:45,speed:0.6,fov:58,range:4.4} ],
+   guards:[] },
+ { tier:0, map:MAP4, alarmUp:48,
+   lasers:[ {c1:1,r1:8,c2:19,r2:8,period:2.6,duty:0.45} ],
+   cams:[ {c:15,r:5,dir:180,sweep:50,speed:0.7,fov:55,range:4.6} ],
+   guards:[ {mode:'wander',start:[10,7],speed:1.8,fov:52,range:4.2} ] },
+ { tier:0, map:MAP5, alarmUp:50,
+   lasers:[ {c1:1,r1:2,c2:19,r2:2,period:2.4,duty:0.45} ],
+   cams:[ {c:5,r:9,dir:-45,sweep:60,speed:0.8,fov:55,range:4.8} ],
+   guards:[ {path:[[15,9],[15,3]],speed:2.0,fov:54,range:4.4} ] },
+ // ---- MEDIUM ----
+ { tier:1, map:MAP2, alarmUp:58,
+   lasers:[ {c1:1,r1:6,c2:19,r2:6,period:2.4,duty:0.42} ],
+   cams:[ {c:15,r:3,dir:180,sweep:55,speed:0.9,fov:55,range:5.0} ],
+   guards:[ {path:[[3,10],[16,10]],speed:2.2,fov:56,range:4.6},
+            {mode:'wander',start:[4,4],speed:1.9,fov:52,range:4.2} ] },
+ { tier:1, map:MAP6, alarmUp:60,
+   lasers:[ {c1:1,r1:5,c2:19,r2:5,period:2.4,duty:0.44} ],
+   cams:[ {c:10,r:1,dir:90,sweep:40,speed:1.0,fov:50,range:5.2} ],
+   guards:[ {mode:'wander',start:[3,3],speed:2.0,fov:52,range:4.2},
+            {mode:'wander',start:[15,7],speed:2.0,fov:52,range:4.2} ] },
+ { tier:1, map:MAP7, alarmUp:62,
+   lasers:[ {c1:1,r1:9,c2:19,r2:9,period:2.3,duty:0.42},
+            {c1:19,r1:2,c2:19,r2:8,period:2.6,duty:0.40} ],
+   cams:[ {c:9,r:6,dir:0,sweep:70,speed:1.0,fov:55,range:5.0} ],
+   guards:[ {path:[[2,11],[18,11]],speed:2.3,fov:56,range:4.6},
+            {mode:'wander',start:[10,10],speed:2.0,fov:52,range:4.2} ] },
+ // ---- HARD ----
+ { tier:2, map:MAP3, alarmUp:70,
+   lasers:[ {c1:1,r1:4,c2:19,r2:4,period:2.1,duty:0.40},
+            {c1:1,r1:8,c2:19,r2:8,period:2.3,duty:0.42} ],
+   cams:[ {c:10,r:5,dir:90,sweep:60,speed:1.2,fov:55,range:5.4},
+          {c:3,r:7,dir:0,sweep:70,speed:0.9,fov:52,range:4.8} ],
+   guards:[ {path:[[7,7],[13,7]],speed:2.5,fov:56,range:4.8},
+            {mode:'wander',start:[16,5],speed:2.2,fov:52,range:4.4} ] },
+ { tier:2, map:MAP8, alarmUp:74,
+   lasers:[ {c1:1,r1:4,c2:19,r2:4,period:2.1,duty:0.40},
+            {c1:1,r1:8,c2:19,r2:8,period:2.2,duty:0.42} ],
+   cams:[ {c:10,r:6,dir:90,sweep:70,speed:1.2,fov:55,range:5.4},
+          {c:5,r:2,dir:0,sweep:60,speed:1.0,fov:52,range:5.0} ],
+   guards:[ {path:[[2,10],[18,10]],speed:2.6,fov:56,range:4.8},
+            {mode:'wander',start:[6,6],speed:2.2,fov:52,range:4.4},
+            {mode:'wander',start:[14,6],speed:2.2,fov:52,range:4.4} ] },
+ { tier:2, map:MAP9, alarmUp:78,
+   lasers:[ {c1:1,r1:3,c2:19,r2:3,period:2.0,duty:0.38},
+            {c1:1,r1:7,c2:19,r2:7,period:2.1,duty:0.40},
+            {c1:1,r1:10,c2:19,r2:10,period:2.2,duty:0.42} ],
+   cams:[ {c:10,r:9,dir:-90,sweep:80,speed:1.3,fov:58,range:5.6},
+          {c:10,r:1,dir:90,sweep:70,speed:1.1,fov:55,range:5.2} ],
+   guards:[ {path:[[2,9],[18,9]],speed:2.7,fov:57,range:5.0},
+            {mode:'wander',start:[3,7],speed:2.4,fov:53,range:4.6},
+            {mode:'wander',start:[15,7],speed:2.4,fov:53,range:4.6} ] }
+];
+const TIER_NAMES=['Easy','Medium','Hard'];
+
+/* ---------- helpers ---------- */
+const rad=d=>d*Math.PI/180;
+const tc=c=>c*TILE+TILE/2;               // tile index -> pixel centre
+const dist=(ax,ay,bx,by)=>Math.hypot(ax-bx,ay-by);
+function angDiff(a,b){ let d=a-b; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; return d; }
+function isWallPx(x,y){ if(x<0||y<0||x>=W||y>=H) return true; const c=(x/TILE)|0, r=(y/TILE)|0; return MAP[r].charAt(c)==='#'; }
+function lineClear(x1,y1,x2,y2){ const d=dist(x1,y1,x2,y2), n=Math.max(1,(d/6)|0); for(let i=1;i<n;i++){ const t=i/n; if(isWallPx(x1+(x2-x1)*t,y1+(y2-y1)*t)) return false; } return true; }
+function pointSeg(px,py,x1,y1,x2,y2){ const dx=x2-x1,dy=y2-y1, l2=dx*dx+dy*dy; let t=l2?((px-x1)*dx+(py-y1)*dy)/l2:0; t=Math.max(0,Math.min(1,t)); return dist(px,py,x1+dx*t,y1+dy*t); }
+
+/* ---------- state ---------- */
+let MAP, level=0, player, bags=[], target=0, carried=0, lives=3, score=0;
+let lasers=[], cams=[], guards=[], exitPx={x:0,y:0}, moneyCentroid={x:0,y:0}, leftBus=false;
+let alarm=0, alarmUp=58, levelTime=0, state='title', bannerT=0, bannerMsg='', posted=false, tNow=0, chosenTier=0, tierEnd=2;
+const keys={};
+
+function loadLevel(i){
+  const L=LEVELS[i]; MAP=L.map;
+  bags=[]; let sx=0,sy=0,mx=0,my=0,mc=0;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const ch=MAP[r].charAt(c);
+    if(ch==='E'){ sx=tc(c); sy=tc(r); }
+    if(ch==='$'){ bags.push({x:tc(c),y:tc(r),taken:false}); mx+=tc(c); my+=tc(r); mc++; }
+  }
+  exitPx={x:sx,y:sy};
+  moneyCentroid={x:mc?mx/mc:sx, y:mc?my/mc:sy};
+  target=bags.length; carried=0; alarm=0; levelTime=0; alarmUp=L.alarmUp||58; leftBus=false;
+  player={x:sx,y:sy,r:12,face:1,walk:0,vx:0,vy:0};
+  lasers=L.lasers.map(l=>({x1:tc(l.c1),y1:tc(l.r1),x2:tc(l.c2),y2:tc(l.r2),period:l.period,duty:l.duty}));
+  cams=L.cams.map(cm=>({x:tc(cm.c),y:tc(cm.r),base:rad(cm.dir),sweep:rad(cm.sweep),speed:cm.speed,fov:rad(cm.fov),range:cm.range*TILE,ang:rad(cm.dir),alert:0}));
+  guards=L.guards.map(g=>{
+    if(g.mode==='wander'){ const cc=g.start[0],cr=g.start[1];
+      return {mode:'wander',cc,cr,x:tc(cc),y:tc(cr),dx:0,dy:0,tx:null,ty:null,speed:g.speed*TILE,fov:rad(g.fov),range:g.range*TILE,facing:0,alert:0}; }
+    const path=g.path.map(p=>({x:tc(p[0]),y:tc(p[1])}));
+    return {mode:'patrol',path,speed:g.speed*TILE,fov:rad(g.fov),range:g.range*TILE,x:path[0].x,y:path[0].y,idx:0,dir:1,facing:0,alert:0};
+  });
+}
+
+function startGame(tier){ chosenTier=tier; level=tier*3; tierEnd=tier*3+2; lives=3; score=0; posted=false; loadLevel(level); show(null); state='play'; }
+function loseLife(){ lives--; if(lives<=0){ endGame(false); } else { state='caught'; bannerT=1.15; bannerMsg='Caught! '+lives+' left'; } }
+function respawn(){ player.x=exitPx.x; player.y=exitPx.y; player.vx=player.vy=0; alarm=0; leftBus=false; state='play'; }
+function levelClear(){ score+=500+Math.max(0,500-Math.floor(levelTime)*8); state='clear'; bannerT=1.5; bannerMsg='Vault cleared!'; }
+function nextLevel(){ if(level>=tierEnd){ endGame(true); } else { level++; loadLevel(level); state='play'; } }
+function endGame(won){ if(won){ score+=lives*250; } state=won?'win':'over';
+  if(!posted){ posted=true; try{ window.parent.postMessage({type:'arcade-score',game:'franks-bank-heist',score:score},'*'); }catch(e){} }
+  document.getElementById(won?'winScore':'overScore').textContent=score.toLocaleString();
+  if(won) document.getElementById('winSub').textContent=TIER_NAMES[chosenTier]+' cleared &middot; '+lives+' chances left';
+  show(won?'scr-win':'scr-over');
+}
+
+/* ---------- update ---------- */
+function update(dt){
+  if(state!=='play'){ if(state==='caught'||state==='clear'||state==='tier'){ bannerT-=dt; if(bannerT<=0){ state==='caught'?respawn():(state==='clear'?nextLevel():(state='play')); } } return; }
+  levelTime+=dt;
+  // movement
+  const sp=118;
+  let dx=(keys.right?1:0)-(keys.left?1:0), dy=(keys.down?1:0)-(keys.up?1:0);
+  if(dx&&dy){ const k=Math.SQRT1_2; dx*=k; dy*=k; }
+  const nx=player.x+dx*sp*dt; if(!hitWall(nx,player.y)) player.x=nx;
+  const ny=player.y+dy*sp*dt; if(!hitWall(player.x,ny)) player.y=ny;
+  if(dx) player.face=dx>0?1:-1;
+  if(dx||dy) player.walk+=dt*10;
+  if(!leftBus && dist(player.x,player.y,exitPx.x,exitPx.y)>TILE*2) leftBus=true;
+  // lasers
+  for(const l of lasers){ const on=((tNow+0)%l.period)<l.period*l.duty; l._on=on;
+    if(on && pointSeg(player.x,player.y,l.x1,l.y1,l.x2,l.y2)<player.r+3){ loseLife(); return; } }
+  // cameras + guards vision
+  let seen=false;
+  for(const cm of cams){ cm.ang=cm.base+Math.sin(tNow*cm.speed)*cm.sweep;
+    const s=cone(cm.x,cm.y,cm.ang,cm.fov,cm.range); cm.alert=s?Math.min(1,cm.alert+dt*3):Math.max(0,cm.alert-dt*2); if(s) seen=true; }
+  for(const g of guards){
+    if(g.mode==='wander'){ stepWander(g,dt); }
+    else {
+      const tx=(g.path[clampIdx(g.idx+g.dir,g.path.length)]).x, ty=(g.path[clampIdx(g.idx+g.dir,g.path.length)]).y;
+      const d=dist(g.x,g.y,tx,ty);
+      if(d<3){ g.idx=clampIdx(g.idx+g.dir,g.path.length); if(g.idx===0||g.idx===g.path.length-1) g.dir*=-1; }
+      else { g.facing=Math.atan2(ty-g.y,tx-g.x); g.x+=Math.cos(g.facing)*g.speed*dt; g.y+=Math.sin(g.facing)*g.speed*dt; }
+    }
+    const s=cone(g.x,g.y,g.facing,g.fov,g.range); g.alert=s?Math.min(1,g.alert+dt*3):Math.max(0,g.alert-dt*2); if(s) seen=true;
+  }
+  alarm+=(seen?alarmUp:-42)*dt; alarm=Math.max(0,Math.min(100,alarm));
+  if(alarm>=100){ loseLife(); return; }
+  // money
+  for(const b of bags){ if(!b.taken && dist(player.x,player.y,b.x,b.y)<20){ b.taken=true; carried++; score+=100; } }
+  // exit
+  if(carried>=target && leftBus && dist(player.x,player.y,exitPx.x,exitPx.y)<26){ levelClear(); }
+}
+function clampIdx(i,n){ return i<0?0:(i>n-1?n-1:i); }
+function stepWander(g,dt){
+  if(g.tx==null) pickWanderDir(g);
+  const d=dist(g.x,g.y,g.tx,g.ty);
+  if(d<3){ g.x=g.tx; g.y=g.ty; g.cc=g.nc; g.cr=g.nr; pickWanderDir(g); }
+  else { g.facing=Math.atan2(g.ty-g.y,g.tx-g.x); g.x+=Math.cos(g.facing)*g.speed*dt; g.y+=Math.sin(g.facing)*g.speed*dt; }
+}
+function pickWanderDir(g){
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  const valid=dirs.filter(([dx,dy])=>{ const nc=g.cc+dx,nr=g.cr+dy; return nr>=0&&nc>=0&&nr<ROWS&&nc<COLS&&MAP[nr].charAt(nc)!=='#'; });
+  if(valid.length===0){ g.tx=g.x; g.ty=g.y; return; }
+  const straight=valid.find(([dx,dy])=>dx===g.dx&&dy===g.dy);
+  const forward=valid.filter(([dx,dy])=>!(dx===-g.dx&&dy===-g.dy));  // anything but a U-turn
+  let pick;
+  if(straight && Math.random()<0.68) pick=straight;                 // mostly keep going -> long back-and-forth runs
+  else if(forward.length) pick=forward[(Math.random()*forward.length)|0];
+  else pick=valid[(Math.random()*valid.length)|0];                  // dead end -> reverse
+  g.dx=pick[0]; g.dy=pick[1]; g.nc=g.cc+g.dx; g.nr=g.cr+g.dy; g.tx=tc(g.nc); g.ty=tc(g.nr);
+}
+function hitWall(x,y){ const r=player.r-2; return isWallPx(x-r,y-r)||isWallPx(x+r,y-r)||isWallPx(x-r,y+r)||isWallPx(x+r,y+r); }
+function cone(sx,sy,face,fov,range){ const d=dist(sx,sy,player.x,player.y); if(d>range) return false;
+  if(Math.abs(angDiff(Math.atan2(player.y-sy,player.x-sx),face))>fov/2) return false;
+  return lineClear(sx,sy,player.x,player.y); }
+
+/* ---------- render ---------- */
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // floor marble
+  ctx.fillStyle='#171226'; ctx.fillRect(0,0,W,H);
+  for(let r=1;r<ROWS-1;r++) for(let c=1;c<COLS-1;c++){ if(((r+c)&1)===0){ ctx.fillStyle='rgba(255,255,255,.028)'; ctx.fillRect(c*TILE,r*TILE,TILE,TILE); } }
+  // vault glow under money
+  if(target>0){ const g=ctx.createRadialGradient(moneyCentroid.x,moneyCentroid.y,4,moneyCentroid.x,moneyCentroid.y,110);
+    g.addColorStop(0,'rgba(255,209,102,.18)'); g.addColorStop(1,'rgba(255,209,102,0)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(255,209,102,.35)'; ctx.font='700 13px Fredoka,sans-serif'; ctx.textAlign='center'; ctx.fillText('VAULT',moneyCentroid.x,moneyCentroid.y-40); }
+  // walls
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ if(MAP[r].charAt(c)==='#'){ const x=c*TILE,y=r*TILE;
+    ctx.fillStyle='#241d44'; rrect(x+1,y+1,TILE-2,TILE-2,6); ctx.fill();
+    ctx.fillStyle='#332a5e'; rrect(x+3,y+3,TILE-6,10,4); ctx.fill(); } }
+  // cones
+  for(const cm of cams) drawCone(cm.x,cm.y,cm.ang,cm.fov,cm.range,cm.alert);
+  for(const g of guards) drawCone(g.x,g.y,g.facing,g.fov,g.range,g.alert);
+  // lasers
+  for(const l of lasers){ const on=l._on;
+    ctx.lineCap='round';
+    ctx.strokeStyle=on?'rgba(255,60,70,.95)':'rgba(255,90,90,.18)'; ctx.lineWidth=on?4:2;
+    if(on){ ctx.shadowColor='#ff3b46'; ctx.shadowBlur=12; } ctx.beginPath(); ctx.moveTo(l.x1,l.y1); ctx.lineTo(l.x2,l.y2); ctx.stroke(); ctx.shadowBlur=0;
+    for(const e of [[l.x1,l.y1],[l.x2,l.y2]]){ ctx.fillStyle='#5a2b3a'; rrect(e[0]-6,e[1]-6,12,12,3); ctx.fill(); ctx.fillStyle=on?'#ff6b76':'#7a3b48'; rrect(e[0]-3,e[1]-3,6,6,2); ctx.fill(); } }
+  // money
+  for(const b of bags){ if(b.taken) continue; drawBag(b.x,b.y); }
+  // devices
+  for(const cm of cams) drawCam(cm);
+  for(const g of guards) drawGuard(g);
+  // bus + mum at exit
+  drawBus(exitPx.x,exitPx.y, carried>=target && target>0);
+  // frank
+  drawFrank(player);
+  // HUD
+  drawHUD();
+  // banner
+  if(state==='caught'||state==='clear'||state==='tier'){ ctx.fillStyle='rgba(10,7,20,.55)'; ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center'; ctx.fillStyle=state==='clear'?'#c5ff4a':(state==='tier'?'#8be9fd':'#ff7676'); ctx.font='700 '+(state==='tier'?26:34)+'px Fredoka,sans-serif'; ctx.fillText(bannerMsg,W/2,H/2); }
+}
+
+function rrect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+function drawCone(sx,sy,face,fov,range,alert){
+  const N=22, pts=[[sx,sy]];
+  for(let i=0;i<=N;i++){ const a=face-fov/2+fov*(i/N); let rr=range; const steps=(range/8)|0;
+    for(let s=1;s<=steps;s++){ const d=range*(s/steps); if(isWallPx(sx+Math.cos(a)*d,sy+Math.sin(a)*d)){ rr=range*((s-1)/steps); break; } }
+    pts.push([sx+Math.cos(a)*rr,sy+Math.sin(a)*rr]); }
+  ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]); ctx.closePath();
+  const seeing=alert>0.5; const col=seeing?[255,70,80]:[255,224,120];
+  const g=ctx.createRadialGradient(sx,sy,4,sx,sy,range);
+  g.addColorStop(0,`rgba(${col[0]},${col[1]},${col[2]},${0.30+alert*0.28})`); g.addColorStop(1,`rgba(${col[0]},${col[1]},${col[2]},0)`);
+  ctx.fillStyle=g; ctx.fill();
+}
+function drawCam(cm){ ctx.fillStyle='#0e0b1c'; rrect(cm.x-11,cm.y-11,22,22,7); ctx.fill();
+  ctx.fillStyle=cm.alert>0.5?'#ff5560':'#8be9fd'; ctx.beginPath(); ctx.arc(cm.x+Math.cos(cm.ang)*5,cm.y+Math.sin(cm.ang)*5,5,0,7); ctx.fill();
+  ctx.strokeStyle='#0e0b1c'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cm.x,cm.y,10,0,7); ctx.stroke(); }
+function drawGuard(g){ const a=g.facing;
+  ctx.fillStyle='#1a2340'; ctx.beginPath(); ctx.arc(g.x,g.y,13,0,7); ctx.fill();          // body
+  ctx.fillStyle=g.alert>0.5?'#ff5560':'#2e3c6e'; ctx.beginPath(); ctx.arc(g.x,g.y,13,a-0.9,a+0.9); ctx.fill(); // front hi-lite
+  ctx.fillStyle='#f0c9a8'; ctx.beginPath(); ctx.arc(g.x,g.y,7,0,7); ctx.fill();            // head
+  ctx.fillStyle='#141a30'; ctx.beginPath(); ctx.arc(g.x,g.y-1,7,Math.PI,2*Math.PI); ctx.fill(); // cap
+  ctx.fillStyle='#141a30'; ctx.beginPath(); ctx.arc(g.x+Math.cos(a)*6,g.y+Math.sin(a)*6,2.4,0,7); ctx.fill(); }
+function drawBag(x,y){ const bob=Math.sin(tNow*3+x)*1.5;
+  ctx.fillStyle='#2fae5f'; rrect(x-9,y-7+bob,18,16,6); ctx.fill();
+  ctx.fillStyle='#1f8a48'; rrect(x-9,y+2+bob,18,7,4); ctx.fill();
+  ctx.fillStyle='#eafff0'; ctx.font='700 11px Fredoka,sans-serif'; ctx.textAlign='center'; ctx.fillText('$',x,y+4+bob); }
+function drawBus(x,y,go){ const bx=x-2,by=y+2;
+  ctx.fillStyle='#ffb32b'; rrect(bx-22,by-13,44,26,7); ctx.fill();
+  ctx.fillStyle='#0e0b1c'; rrect(bx-16,by-8,10,9,2); ctx.fill(); rrect(bx-3,by-8,10,9,2); ctx.fill(); rrect(bx+10,by-8,7,9,2); ctx.fill();
+  ctx.fillStyle='#241d44'; ctx.beginPath(); ctx.arc(bx-12,by+13,4,0,7); ctx.arc(bx+12,by+13,4,0,7); ctx.fill();
+  // mum
+  ctx.fillStyle='#c65b9a'; rrect(x+22,y-14,12,22,5); ctx.fill(); ctx.fillStyle='#f0c9a8'; ctx.beginPath(); ctx.arc(x+28,y-16,6,0,7); ctx.fill();
+  if(go){ ctx.fillStyle='#c5ff4a'; ctx.font='700 12px Fredoka,sans-serif'; ctx.textAlign='center'; ctx.fillText('GO! →',x,y-26); } }
+function drawFrank(p){ ctx.save(); ctx.translate(p.x,p.y); ctx.scale(p.face,1);
+  const step=Math.sin(p.walk)*3;
+  ctx.fillStyle='#f2c9a6'; // legs
+  ctx.beginPath(); ctx.arc(-5,12+step,4,0,7); ctx.arc(6,12-step,4,0,7); ctx.fill();
+  // romper body (grows with loot)
+  const fill=target?carried/target:0; const bw=15+fill*7;
+  ctx.fillStyle='#e8564f'; rrect(-bw/2,-4,bw,18,8); ctx.fill();
+  ctx.fillStyle='#fbeae8'; for(let i=0;i<3;i++){ rrect(-bw/2, -1+i*5, bw, 2.4, 1); ctx.fill(); }
+  // arms
+  ctx.strokeStyle='#f2c9a6'; ctx.lineWidth=4; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(-bw/2+1,0); ctx.lineTo(-bw/2-4,6-step); ctx.moveTo(bw/2-1,0); ctx.lineTo(bw/2+4,6+step); ctx.stroke();
+  // head
+  ctx.fillStyle='#f7d3af'; ctx.beginPath(); ctx.arc(0,-13,10,0,7); ctx.fill();
+  ctx.strokeStyle='#8a5a2b'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(1,-23); ctx.quadraticCurveTo(5,-27,2,-24); ctx.stroke(); // curl
+  ctx.fillStyle='#241d2a'; ctx.beginPath(); ctx.arc(4,-14,1.6,0,7); ctx.arc(-2,-14,1.6,0,7); ctx.fill();
+  ctx.strokeStyle='#c47b5a'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.arc(1,-11,3,0.15*Math.PI,0.85*Math.PI); ctx.stroke();
+  ctx.restore();
+}
+function drawHUD(){
+  ctx.fillStyle='rgba(10,7,20,.55)'; ctx.fillRect(0,0,W,30);
+  ctx.textAlign='left'; ctx.textBaseline='middle';
+  // lives
+  for(let i=0;i<3;i++){ const x=14+i*20; ctx.fillStyle=i<lives?'#ff6b8a':'#3a3350'; heart(x,15,7); }
+  // loot
+  ctx.fillStyle='#ffd166'; ctx.font='700 15px Fredoka,sans-serif'; ctx.fillText('💰 '+carried+'/'+target,86,16);
+  // level
+  ctx.textAlign='center'; ctx.fillStyle='#cfc7e6'; ctx.fillText(TIER_NAMES[(level/3)|0].toUpperCase()+' · '+(level%3+1)+'/3',W/2,16);
+  // alarm bar
+  const bw=150,bx=W-bw-14,by=10;
+  ctx.textAlign='right'; ctx.fillStyle='#8b83a8'; ctx.font='700 12px Fredoka,sans-serif'; ctx.fillText('ALARM',bx-8,16);
+  ctx.fillStyle='#2a2340'; rrect(bx,by,bw,11,5); ctx.fill();
+  const col=alarm>75?'#ff3b46':alarm>40?'#ffb32b':'#c5ff4a';
+  ctx.fillStyle=col; rrect(bx,by,Math.max(2,bw*alarm/100),11,5); ctx.fill();
+  ctx.textBaseline='alphabetic';
+}
+function heart(x,y,s){ ctx.beginPath(); ctx.moveTo(x,y+s*0.7); ctx.bezierCurveTo(x-s,y-s*0.4,x-s*0.5,y-s,x,y-s*0.35); ctx.bezierCurveTo(x+s*0.5,y-s,x+s,y-s*0.4,x,y+s*0.7); ctx.fill(); }
+
+/* ---------- loop ---------- */
+let last=0;
+function frame(ts){ const dt=Math.min(0.05,(ts-last)/1000||0); last=ts; tNow+=dt; update(dt); draw(); requestAnimationFrame(frame); }
+requestAnimationFrame(frame);
+
+/* ---------- input ---------- */
+const keymap={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right',W:'up',S:'down',A:'left',D:'right'};
+addEventListener('keydown',e=>{ if(keymap[e.key]){ keys[keymap[e.key]]=true; e.preventDefault(); } });
+addEventListener('keyup',e=>{ if(keymap[e.key]){ keys[keymap[e.key]]=false; e.preventDefault(); } });
+function bindPad(id,dir){ const el=document.getElementById(id);
+  const on=e=>{ keys[dir]=true; e.preventDefault(); }, off=e=>{ keys[dir]=false; e.preventDefault(); };
+  el.addEventListener('pointerdown',on); el.addEventListener('pointerup',off); el.addEventListener('pointerleave',off); el.addEventListener('pointercancel',off); }
+bindPad('du','up'); bindPad('dd','down'); bindPad('dl','left'); bindPad('dr','right');
+if(matchMedia('(pointer:coarse)').matches) document.getElementById('pad').classList.add('show');
+
+/* ---------- screens ---------- */
+function show(id){ ['scr-title','scr-win','scr-over'].forEach(s=>document.getElementById(s).classList.toggle('hide',s!==id)); }
+document.getElementById('btnEasy').onclick=()=>startGame(0);
+document.getElementById('btnMed').onclick=()=>startGame(1);
+document.getElementById('btnHard').onclick=()=>startGame(2);
+document.getElementById('againBtn').onclick=()=>{ state='title'; show('scr-title'); };
+document.getElementById('retryBtn').onclick=()=>{ state='title'; show('scr-title'); };
+
+// preload level 0 for the backdrop while on title
+loadLevel(0);
+})();
+</script>
+</body>
+</html>
