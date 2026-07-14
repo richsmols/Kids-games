@@ -78,6 +78,7 @@
 
   /* dashboard tiles */
   .section-h{font-family:var(--pix);font-size:13px;color:var(--cyan);letter-spacing:1px;margin:0 0 18px;}
+  .section-sub{color:var(--muted);font-size:14px;margin:-10px 0 18px;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;}
   .tile{position:relative;border-radius:16px;border:3px solid #000;box-shadow:0 0 0 3px var(--line), 0 12px 30px rgba(0,0,0,.5);
     background:linear-gradient(160deg,var(--panel2),var(--panel));overflow:hidden;cursor:pointer;text-align:left;padding:0;}
@@ -198,6 +199,9 @@
   <section id="view-dashboard" class="hide">
     <h2 class="section-h">CHOOSE YOUR GAME</h2>
     <div class="grid" id="tiles"></div>
+    <h2 class="section-h" id="studioH" style="margin-top:30px">STUDIO · JUST FOR FUN</h2>
+    <p class="section-sub" id="studioSub">Creative tools — free play, nothing scored.</p>
+    <div class="grid" id="studioTiles"></div>
   </section>
 
   <!-- GAME -->
@@ -230,8 +234,9 @@ const GAMES = [
   { id:'maths-arcade-runner', name:'Maths Arcade Runner', tag:'Run, jump, kick & solve sums', emoji:'⚽', src:'games/maths-arcade-runner.html', ready:true },
   { id:'dino-chomp',          name:'Dino Chomp',          tag:'Catch the snacks, dodge the rocks', emoji:'🦖', src:'games/dino-chomp.html',         ready:true },
   { id:'junction-control',    name:'Junction Control',    tag:'Route the trains, dodge the smash-ups', emoji:'🚉', src:'games/junction-control.html', ready:true },
-  { id:'acid-lab',            name:'Acid Lab',            tag:'Make acid house beats',         emoji:'🎛️', src:'games/acid-lab.html',           ready:true },
-  { id:'franks-bank-heist',   name:"Frank's First Bank Heist", tag:'Sneak to the vault, stuff your romper, catch the bus', emoji:'👶', src:'games/franks-bank-heist.html', ready:true }
+  { id:'acid-lab',            name:'Acid Lab',            tag:'Make acid house beats — free play, no score',         emoji:'🎛️', src:'games/acid-lab.html', sandbox:true, ready:true },
+  { id:'franks-bank-heist',   name:"Frank's First Bank Heist", tag:'Sneak to the vault, stuff your romper, catch the bus', emoji:'👶', src:'games/franks-bank-heist.html', ready:true },
+  { id:'acid-challenge',      name:'303 Challenge',        tag:'Copy the acid beat — how close can you get?', emoji:'🎚️', src:'games/acid-challenge.html', ready:true }
 ];
 
 const $ = id => document.getElementById(id);
@@ -306,20 +311,29 @@ $('requestBtn').onclick = async ()=>{
 
 // ---------- dashboard ----------
 function openDashboard(){
-  const wrap=$('tiles'); wrap.innerHTML='';
-  GAMES.forEach(g=>{
+  const scored=GAMES.filter(g=>!g.sandbox), studio=GAMES.filter(g=>g.sandbox);
+  renderTiles(scored,$('tiles'));
+  renderTiles(studio,$('studioTiles'));
+  const has=studio.length>0;
+  $('studioH').style.display=has?'':'none';
+  $('studioSub').style.display=has?'':'none';
+  show('dashboard');
+}
+function renderTiles(arr,wrap){
+  wrap.innerHTML='';
+  arr.forEach(g=>{
     const t=document.createElement('button');
     t.className='tile '+(g.ready?'ready':'soon');
     t.disabled=!g.ready;
+    const play=g.ready?(g.sandbox?'▶ OPEN':'▶ PLAY'):'NOT READY YET';
     t.innerHTML =
       (g.ready?'':'<span class="badge">SOON</span>')+
       '<div class="art">'+g.emoji+'</div>'+
       '<div class="meta"><p class="gname">'+g.name+'</p><p class="gtag">'+g.tag+'</p>'+
-      '<p class="play">'+(g.ready?'▶ PLAY':'NOT READY YET')+'</p></div>';
+      '<p class="play">'+play+'</p></div>';
     if(g.ready) t.onclick=()=>openGame(g);
     wrap.appendChild(t);
   });
-  show('dashboard');
 }
 
 // ---------- play a game ----------
@@ -352,6 +366,7 @@ async function openLeaderboard(){
   if(error){ board.innerHTML='<div class="empty">Could not load the league table.</div>'; return; }
   board.innerHTML='';
   GAMES.forEach(g=>{
+    if(g.sandbox) return;
     const rows=(data||[]).filter(r=>r.game===g.id);
     if(!rows.length && !g.ready) return;
     const sec=document.createElement('div'); sec.className='lb-game';
